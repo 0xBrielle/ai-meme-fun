@@ -19,6 +19,11 @@
 
 # production
 /build
+/out
+
+# Capacitor
+/ios
+/android
 
 # misc
 .DS_Store
