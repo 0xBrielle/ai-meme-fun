@@ -5,7 +5,7 @@ import { delay } from '@/lib/utils'
 async function pollPrediction(predictionId: string): Promise<any> {
     const maxAttempts = 120 // 2 minutes
     for (let i = 0; i < maxAttempts; i++) {
-        const data: any = await api.get(`/api/generate/poll?id=${predictionId}`)
+        const data: any = await api.get(`/generate/poll?id=${predictionId}`)
         if (data.status === 'succeeded') return data
         if (data.status === 'failed') throw new Error(data.error || 'Generation failed')
         await delay(1000)
@@ -19,7 +19,7 @@ export async function generateWithReplicate(
     const startTime = Date.now()
 
     try {
-        const { predictionId }: any = await api.post('/api/generate', {
+        const { predictionId }: any = await api.post('/generate', {
             provider: 'replicate',
             ...request,
         })
