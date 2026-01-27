@@ -84,7 +84,21 @@ export async function apiRequest<T>(
         try {
             const controller = createTimeoutController(timeout)
 
-            const response = await fetch(url, {
+            // Handle relative URLs by prepending the API base URL
+            let fullUrl = url
+            if (url.startsWith('/')) {
+                // If it's a relative path, use the configured API URL
+                // If the configured API URL is relative, use the current origin in browser
+                const baseUrl = env.apiUrl.startsWith('http')
+                    ? env.apiUrl
+                    : (typeof window !== 'undefined' ? window.location.origin : env.appUrl) + env.apiUrl
+
+                fullUrl = baseUrl.endsWith('/') && url.startsWith('/')
+                    ? baseUrl + url.slice(1)
+                    : baseUrl + url
+            }
+
+            const response = await fetch(fullUrl, {
                 ...options,
                 signal: controller.signal,
                 headers: {

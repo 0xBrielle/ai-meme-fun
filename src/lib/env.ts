@@ -10,7 +10,7 @@ export const env = {
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
 
     // App
-    appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    appUrl: process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'),
     appName: process.env.NEXT_PUBLIC_APP_NAME || 'AI Image App',
     apiUrl: process.env.NEXT_PUBLIC_API_URL || '/api',
 
