@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     try {
         const response = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
             headers: {
-                Authorization: `Token ${env.replicateToken}`,
+                Authorization: `Bearer ${env.replicateToken}`,
             },
         })
 

@@ -14,17 +14,18 @@ export async function POST(req: NextRequest) {
         }
 
         if (provider === 'replicate') {
+            console.log('Calling Replicate with prompt:', prompt)
             const response = await fetch('https://api.replicate.com/v1/predictions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Token ${env.replicateToken}`,
+                    Authorization: `Bearer ${env.replicateToken}`,
                 },
                 body: JSON.stringify({
                     version: '7762fd0e0e163b019808381831885b59a6078e478546b38c0379fd6f671c691f',
                     input: {
                         prompt,
-                        image: inputImage,
+                        image: inputImage || undefined,
                         ...rest,
                     },
                 }),
@@ -32,10 +33,12 @@ export async function POST(req: NextRequest) {
 
             if (!response.ok) {
                 const errorData = await response.json()
+                console.error('Replicate Error:', errorData)
                 return NextResponse.json(
                     {
                         error: errorData.detail || ERROR_CODES.GENERATION_FAILED.message,
                         code: 'REPLICATE_ERROR',
+                        details: errorData
                     },
                     { status: response.status }
                 )
@@ -46,22 +49,28 @@ export async function POST(req: NextRequest) {
         }
 
         if (provider === 'fal') {
+            console.log('Calling Fal.ai with prompt:', prompt)
+            const body: any = { prompt, ...rest }
+            if (inputImage) body.image_url = inputImage
+
             const response = await fetch('https://fal.run/fal-ai/flux/schnell', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Key ${env.falApiKey}`,
                 },
-                body: JSON.stringify({
-                    prompt,
-                    image_url: inputImage,
-                    ...rest,
-                }),
+                body: JSON.stringify(body),
             })
 
             if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                console.error('Fal.ai Error:', errorData)
                 return NextResponse.json(
-                    { error: ERROR_CODES.GENERATION_FAILED.message, code: 'FAL_ERROR' },
+                    {
+                        error: errorData.message || ERROR_CODES.GENERATION_FAILED.message,
+                        code: 'FAL_ERROR',
+                        details: errorData
+                    },
                     { status: response.status }
                 )
             }
