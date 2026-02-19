@@ -46,10 +46,10 @@ function getDimensions(
     return DIMENSIONS[ratio]?.[res] ?? DIMENSIONS['9:16']['2k']
 }
 
-function resolveFalEndpoint(type: string, model: string | undefined, hasInputImage: boolean) {
+function resolveFalEndpoint(type: string, model: string | undefined) {
     if (model) return model
     if (type.includes('video')) return 'fal-ai/veo3'
-    return hasInputImage ? 'fal-ai/flux-subject' : 'fal-ai/nano-banana'
+    return 'fal-ai/nano-banana'   // ALL image types use nano-banana
 }
 
 function parseOutputUrl(data: any, isVideo: boolean) {
@@ -64,12 +64,11 @@ function buildRequestBody(
     durationSeconds: number | undefined,
     aspectRatio: string | undefined,
     resolution: string | undefined,
-    falEndpoint: string,
 ): Record<string, any> {
     const isVideoType = type?.includes('video')
     const { width, height } = getDimensions(aspectRatio, resolution)
 
-    // ── Video ──────────────────────────────────────────────────────────────
+    // ── Video → VEO3 ──────────────────────────────────────────────────────
     if (isVideoType) {
         return {
             prompt,
@@ -79,30 +78,16 @@ function buildRequestBody(
         }
     }
 
-    // ── Image with reference ───────────────────────────────────────────────
-    // RULE: if inputImage exists, ALWAYS use it as reference, regardless of type.
-    if (inputImage) {
-        const isFluxSubject = falEndpoint.includes('flux-subject')
-
-        return {
-            prompt,
-            // flux-subject uses subject_image_url; all other img2img endpoints use image_url
-            ...(isFluxSubject
-                ? { subject_image_url: inputImage }
-                : { image_url: inputImage, strength: 0.55 }
-            ),
-            num_inference_steps: 40,
-            guidance_scale: 7.5,
-            image_size: { width, height },
-            output_format: 'jpeg',
-            output_quality: 95,
-            enable_safety_checker: false,
-        }
-    }
-
-    // ── Text-to-image (no reference) ───────────────────────────────────────
+    // ── Image → NanoBanana ────────────────────────────────────────────────
+    // Pass image_url when a reference image is attached (image-to-image).
+    // NanoBanana uses it as a reference; strength controls how closely
+    // the output follows the reference (0.5 = close to reference).
     return {
-        prompt: `${prompt}, ultra realistic, high detail, photorealistic, sharp focus, professional photography`,
+        prompt: `${prompt}, ultra realistic, high detail, photorealistic, sharp focus`,
+        ...(inputImage && {
+            image_url: inputImage,
+            strength: 0.5,
+        }),
         num_inference_steps: 50,
         guidance_scale: 7.5,
         image_size: { width, height },
@@ -136,7 +121,7 @@ export async function POST(req: NextRequest) {
         const hasInputImage = !!inputImage
         const isVideoType = type?.includes('video')
 
-        const falEndpoint = resolveFalEndpoint(type, model, hasInputImage)
+        const falEndpoint = resolveFalEndpoint(type, model)
 
         // Pass aspectRatio + resolution into body builder
         const requestBody = buildRequestBody(
@@ -146,7 +131,6 @@ export async function POST(req: NextRequest) {
             durationSeconds,
             aspectRatio,
             resolution,
-            falEndpoint,
         )
 
         console.log(`[FAL] Endpoint: ${falEndpoint} | ${aspectRatio ?? '9:16'} @ ${resolution ?? '2k'}`, {
