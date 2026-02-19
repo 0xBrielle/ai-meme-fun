@@ -9,45 +9,51 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const { toggleSidebar, createConversation } = useConversationStore()
 
     return (
-        <div className="flex h-screen w-screen overflow-hidden bg-[#FDF7F5]">
-            {/* Sidebar (slide-over) */}
+        <div className="flex h-screen w-screen overflow-hidden" style={{ background: '#F5EFE9' }}>
             <Sidebar />
 
-            {/* Main area — full width on mobile */}
             <div className="flex flex-col flex-1 min-w-0 h-full relative">
 
-                {/* Minimal top bar — just hamburger + new chat */}
-                <div
-                    className="flex items-center justify-between px-4 h-14 shrink-0 safe-top"
+                {/* Header */}
+                <header
+                    className="flex items-center justify-between px-5 h-14 shrink-0 safe-top z-30"
                     style={{
-                        background: 'rgba(253,247,245,0.9)',
-                        backdropFilter: 'blur(16px)',
-                        WebkitBackdropFilter: 'blur(16px)',
-                        borderBottom: '1px solid rgba(232,160,168,0.1)',
+                        background: 'rgba(245,239,233,0.88)',
+                        backdropFilter: 'blur(24px)',
+                        WebkitBackdropFilter: 'blur(24px)',
+                        borderBottom: '1px solid rgba(212,120,138,0.1)',
                     }}
                 >
-                    {/* Hamburger — opens sidebar */}
                     <button
                         onClick={toggleSidebar}
-                        className="w-9 h-9 rounded-xl flex items-center justify-center text-[#9B8A8D] hover:bg-[#F5E8E4] transition-colors active:scale-95"
+                        className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-90"
+                        style={{ background: 'rgba(212,120,138,0.08)', color: '#D4788A' }}
                     >
-                        <Menu size={20} />
+                        <Menu size={18} strokeWidth={2.5} />
                     </button>
 
-                    <span className="text-[15px] font-semibold text-[#2D2426] tracking-tight">
+                    {/* Brand — gradient text */}
+                    <span
+                        className="text-[15px] font-bold tracking-tight"
+                        style={{
+                            background: 'linear-gradient(135deg, #D4788A 0%, #C9955C 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                        }}
+                    >
                         AI Fun Meme
                     </span>
 
-                    {/* New Chat shortcut */}
                     <button
                         onClick={createConversation}
-                        className="w-9 h-9 rounded-xl flex items-center justify-center text-[#E8A0A8] hover:bg-[#F5E8E4] transition-colors active:scale-95"
+                        className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-90"
+                        style={{ background: 'rgba(212,120,138,0.08)', color: '#D4788A' }}
                     >
-                        <Plus size={20} strokeWidth={2.5} />
+                        <Plus size={18} strokeWidth={2.5} />
                     </button>
-                </div>
+                </header>
 
-                {/* Page content */}
                 <main className="flex-1 overflow-hidden w-full max-w-3xl mx-auto relative">
                     {children}
                 </main>

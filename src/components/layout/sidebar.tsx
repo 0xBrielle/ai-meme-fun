@@ -37,48 +37,72 @@ export function Sidebar() {
 
             {/* Sidebar Panel */}
             <aside
-                className="fixed top-0 left-0 bottom-0 z-50 w-[300px] flex flex-col safe-top safe-bottom"
+                className="fixed top-0 left-0 bottom-0 z-50 w-[285px] flex flex-col safe-top safe-bottom"
                 style={{
-                    background: 'linear-gradient(180deg, #FBF0EE 0%, #FDF7F5 100%)',
-                    borderRight: '1px solid rgba(232, 160, 168, 0.2)',
-                    boxShadow: '8px 0 32px rgba(0,0,0,0.08)',
+                    background: '#FAF5F2',
+                    borderRight: '1px solid rgba(212, 120, 138, 0.12)',
+                    boxShadow: '12px 0 48px rgba(0,0,0,0.1), 4px 0 12px rgba(0,0,0,0.04)',
                 }}
             >
-                {/* === TOP: New Chat + Search + Close === */}
-                <div className="px-4 pt-4 pb-3 space-y-3">
-                    {/* Header row */}
-                    <div className="flex items-center justify-between">
-                        <span className="text-[15px] font-semibold text-[#2D2426]">AI Fun Meme</span>
+                {/* === TOP HERO SECTION === */}
+                <div
+                    className="px-5 pt-6 pb-5"
+                    style={{
+                        background: 'linear-gradient(160deg, #F9E8EC 0%, #FAF0E8 60%, #FAF5F2 100%)',
+                        borderBottom: '1px solid rgba(212, 120, 138, 0.1)',
+                    }}
+                >
+                    {/* Logo row */}
+                    <div className="flex items-center justify-between mb-5">
+                        <div>
+                            <span
+                                className="text-[22px] font-black tracking-tighter leading-none"
+                                style={{
+                                    background: 'linear-gradient(135deg, #D4788A, #C9955C)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    backgroundClip: 'text',
+                                }}
+                            >
+                                AI Fun Meme
+                            </span>
+                            <p className="text-[10px] uppercase tracking-[0.2em] font-semibold mt-0.5" style={{ color: '#BFB0AB' }}>
+                                Creative Studio
+                            </p>
+                        </div>
                         <button
                             onClick={() => setSidebar(false)}
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-[#9B8A8D] hover:bg-[#F5E8E4] transition-colors"
+                            className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90"
+                            style={{ background: 'rgba(212, 120, 138, 0.1)', color: '#D4788A' }}
                         >
-                            <X size={18} />
+                            <X size={16} strokeWidth={2.5} />
                         </button>
                     </div>
 
                     {/* New Chat button */}
                     <button
                         onClick={createConversation}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-[14px] font-semibold text-white transition-all active:scale-98"
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-[13px] font-bold text-white tracking-wide transition-all active:scale-98"
                         style={{
-                            background: 'linear-gradient(135deg, #E8A0A8 0%, #D4757F 100%)',
-                            boxShadow: '0 4px 12px rgba(232, 160, 168, 0.4)',
+                            background: 'linear-gradient(135deg, #D4788A 0%, #A84D60 100%)',
+                            boxShadow: '0 4px 16px rgba(212, 120, 138, 0.35), 0 1px 4px rgba(0,0,0,0.1)',
+                            letterSpacing: '0.04em',
                         }}
                     >
-                        <Plus size={17} strokeWidth={2.5} />
-                        New Chat
+                        <Plus size={16} strokeWidth={3} />
+                        NEW CHAT
                     </button>
 
-                    {/* Search bar */}
+                    {/* Search */}
                     <div
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all"
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl mt-3 transition-all"
                         style={{
-                            background: searchFocused ? '#FFFFFF' : '#F5E8E4',
-                            border: `1px solid ${searchFocused ? 'rgba(232,160,168,0.5)' : 'transparent'}`,
+                            background: searchFocused ? '#FFFFFF' : 'rgba(212, 120, 138, 0.06)',
+                            border: `1px solid ${searchFocused ? 'rgba(212, 120, 138, 0.35)' : 'transparent'}`,
+                            boxShadow: searchFocused ? '0 0 0 3px rgba(212,120,138,0.08)' : 'none',
                         }}
                     >
-                        <Search size={15} className="text-[#C4B0B3] shrink-0" />
+                        <Search size={14} style={{ color: '#BFB0AB' }} className="shrink-0" />
                         <input
                             type="text"
                             placeholder="Search chats..."
@@ -86,18 +110,31 @@ export function Sidebar() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onFocus={() => setSearchFocused(true)}
                             onBlur={() => setSearchFocused(false)}
-                            className="flex-1 bg-transparent border-none outline-none text-[14px] text-[#2D2426] placeholder:text-[#C4B0B3] font-light"
+                            className="flex-1 bg-transparent border-none outline-none text-[13px] font-light placeholder:text-[#BFB0AB]"
+                            style={{ color: '#1C1410' }}
                         />
                     </div>
                 </div>
 
-                {/* === MIDDLE: Conversation List === */}
-                <div className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5">
+                {/* === CONVERSATION LIST === */}
+                <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+                    {/* Section label */}
+                    {filtered.length > 0 && (
+                        <p className="text-[10px] uppercase tracking-[0.2em] font-bold px-2 pb-1" style={{ color: '#BFB0AB' }}>
+                            Recent
+                        </p>
+                    )}
+
                     {filtered.length === 0 && (
-                        <div className="flex flex-col items-center justify-center h-40 text-center space-y-2">
-                            <MessageSquare size={28} className="text-[#E8A0A8] opacity-40" />
-                            <p className="text-[13px] text-[#C4B0B3] font-light">
-                                {searchQuery ? 'No chats found' : 'No conversations yet'}
+                        <div className="flex flex-col items-center justify-center h-48 gap-3 text-center">
+                            <div
+                                className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                                style={{ background: 'rgba(212, 120, 138, 0.08)' }}
+                            >
+                                <MessageSquare size={22} style={{ color: '#D4788A', opacity: 0.5 }} />
+                            </div>
+                            <p className="text-[13px] font-light" style={{ color: '#BFB0AB' }}>
+                                {searchQuery ? 'No results' : 'Start your first chat'}
                             </p>
                         </div>
                     )}
@@ -105,34 +142,47 @@ export function Sidebar() {
                     {filtered.map((convo) => {
                         const isActive = convo.id === activeConversationId
                         return (
-                            <div key={convo.id} className="group relative flex items-center">
+                            <div key={convo.id} className="group relative">
                                 <button
                                     onClick={() => setActiveConversation(convo.id)}
-                                    className={cn(
-                                        'w-full text-left px-3 py-3 rounded-xl transition-all flex flex-col gap-0.5',
-                                        isActive
-                                            ? 'bg-white shadow-sm'
-                                            : 'hover:bg-white/60'
-                                    )}
+                                    className="w-full text-left px-3 py-3 rounded-2xl transition-all"
                                     style={isActive ? {
-                                        border: '1px solid rgba(232,160,168,0.2)',
-                                    } : { border: '1px solid transparent' }}
+                                        background: 'linear-gradient(135deg, rgba(212, 120, 138, 0.12), rgba(201, 149, 92, 0.06))',
+                                        border: '1px solid rgba(212, 120, 138, 0.2)',
+                                        boxShadow: '0 2px 8px rgba(212, 120, 138, 0.08)',
+                                    } : {
+                                        border: '1px solid transparent',
+                                    }}
                                 >
-                                    <span className={cn(
-                                        'text-[14px] font-medium truncate pr-6',
-                                        isActive ? 'text-[#2D2426]' : 'text-[#5A4A4D]'
-                                    )}>
-                                        {convo.title}
-                                    </span>
-                                    <span className="text-[11px] text-[#C4B0B3] font-light">
-                                        {formatDistanceToNow(new Date(convo.updatedAt), { addSuffix: true })}
-                                    </span>
+                                    {/* Active indicator dot */}
+                                    <div className="flex items-start gap-2.5">
+                                        {isActive && (
+                                            <div
+                                                className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
+                                                style={{ background: 'linear-gradient(135deg, #D4788A, #C9955C)' }}
+                                            />
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <p
+                                                className="text-[13px] font-medium truncate pr-5"
+                                                style={{ color: isActive ? '#1C1410' : '#5C4D49' }}
+                                            >
+                                                {convo.title}
+                                            </p>
+                                            <p className="text-[11px] font-light mt-0.5" style={{ color: '#BFB0AB' }}>
+                                                {formatDistanceToNow(new Date(convo.updatedAt), { addSuffix: true })}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </button>
 
-                                {/* Delete button — appears on hover */}
+                                {/* Delete — hover only */}
                                 <button
                                     onClick={(e) => { e.stopPropagation(); deleteConversation(convo.id) }}
-                                    className="absolute right-2 w-7 h-7 rounded-lg flex items-center justify-center text-[#C4B0B3] hover:text-red-400 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-xl flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+                                    style={{ color: '#BFB0AB' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.color = '#EF4444' }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#BFB0AB' }}
                                 >
                                     <Trash2 size={13} />
                                 </button>
@@ -141,25 +191,43 @@ export function Sidebar() {
                     })}
                 </div>
 
-                {/* === BOTTOM: Profile + Settings + Sign Out === */}
-                <div className="px-3 py-4 border-t space-y-1" style={{ borderColor: 'rgba(232,160,168,0.15)' }}>
+                {/* === BOTTOM: Profile === */}
+                <div
+                    className="px-3 py-4 space-y-1"
+                    style={{ borderTop: '1px solid rgba(212, 120, 138, 0.1)' }}
+                >
                     <Link href="/settings">
-                        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] text-[#5A4A4D] hover:bg-white/60 transition-colors">
-                            <Settings size={17} className="text-[#C4B0B3]" />
+                        <button
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-[13px] transition-all"
+                            style={{ color: '#5C4D49' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(212, 120, 138, 0.06)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                        >
+                            <Settings size={16} style={{ color: '#BFB0AB' }} />
                             Settings
                         </button>
                     </Link>
 
-                    <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                            style={{ background: 'linear-gradient(135deg, #E8A0A8, #D4757F)' }}>
-                            <User size={15} className="text-white" />
+                    {/* Account row */}
+                    <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl">
+                        <div
+                            className="w-9 h-9 rounded-2xl flex items-center justify-center shrink-0"
+                            style={{ background: 'linear-gradient(135deg, #D4788A, #A84D60)' }}
+                        >
+                            <User size={16} className="text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-medium text-[#2D2426] truncate">My Account</p>
-                            <p className="text-[11px] text-[#C4B0B3] font-light">47 credits remaining</p>
+                            <p className="text-[13px] font-semibold truncate" style={{ color: '#1C1410' }}>My Account</p>
+                            <p className="text-[11px] font-light" style={{ color: '#C9955C' }}>
+                                47 credits
+                            </p>
                         </div>
-                        <button className="w-8 h-8 rounded-lg flex items-center justify-center text-[#C4B0B3] hover:text-red-400 hover:bg-red-50 transition-colors">
+                        <button
+                            className="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
+                            style={{ color: '#BFB0AB' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.color = '#EF4444' }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#BFB0AB' }}
+                        >
                             <LogOut size={15} />
                         </button>
                     </div>

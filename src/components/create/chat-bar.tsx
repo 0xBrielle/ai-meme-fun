@@ -32,24 +32,21 @@ function ControlSelect({ value, onChange, disabled, options }: ControlSelectProp
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 disabled={disabled}
-                className="appearance-none text-[12px] font-semibold pl-2.5 pr-6 py-1.5 rounded-xl cursor-pointer outline-none transition-all disabled:opacity-50"
+                className="appearance-none text-[11px] font-bold uppercase tracking-wider pl-3 pr-6 py-1.5 rounded-full cursor-pointer outline-none transition-all disabled:opacity-40"
                 style={{
-                    background: '#FBF0EE',
-                    border: '1px solid rgba(232,160,168,0.25)',
-                    color: '#C8707A',
+                    background: 'rgba(212,120,138,0.08)',
+                    border: '1px solid rgba(212,120,138,0.2)',
+                    color: '#D4788A',
+                    letterSpacing: '0.06em',
                 }}
             >
                 {options.map((o) => (
-                    <option key={o.value} value={o.value} style={{ background: '#FFF', color: '#2D2426' }}>
+                    <option key={o.value} value={o.value} style={{ background: '#FAF5F2', color: '#1C1410', fontWeight: '400', letterSpacing: '0' }}>
                         {o.label}
                     </option>
                 ))}
             </select>
-            <ChevronDown
-                size={11}
-                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: '#C8707A' }}
-            />
+            <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#D4788A' }} />
         </div>
     )
 }
@@ -136,27 +133,32 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
 
     return (
         <div
-            className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-8 safe-bottom"
-            style={{ background: 'linear-gradient(to top, #FDF7F5 55%, transparent)' }}
+            className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-12 safe-bottom"
+            style={{
+                background: 'linear-gradient(to top, #F5EFE9 50%, rgba(245,239,233,0.8) 75%, transparent 100%)',
+            }}
         >
             <div className="max-w-2xl mx-auto space-y-2">
 
                 {/* Attachment preview */}
                 {attachment && (
-                    <div className="flex px-1 animate-in">
+                    <div className="flex px-2 message-in">
                         <div className="relative">
                             <img
                                 src={attachment}
                                 alt="Attachment"
-                                className="w-14 h-14 object-cover rounded-2xl shadow-sm"
-                                style={{ border: '1.5px solid rgba(232,160,168,0.3)' }}
+                                className="w-16 h-16 object-cover rounded-2xl"
+                                style={{
+                                    border: '2px solid rgba(212,120,138,0.3)',
+                                    boxShadow: '0 4px 12px rgba(212,120,138,0.2)',
+                                }}
                             />
                             <button
                                 onClick={() => setAttachment(null)}
-                                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-white shadow-md"
-                                style={{ background: '#E8A0A8' }}
+                                className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center text-white shadow-lg"
+                                style={{ background: 'linear-gradient(135deg, #D4788A, #A84D60)' }}
                             >
-                                <X size={11} strokeWidth={3} />
+                                <X size={10} strokeWidth={3} />
                             </button>
                         </div>
                     </div>
@@ -165,17 +167,13 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
                 {/* Chat input box */}
                 <form
                     onSubmit={handleSend}
-                    style={{
-                        background: 'rgba(255,255,255,0.96)',
-                        border: '1.5px solid rgba(232,160,168,0.35)',
-                        borderRadius: '22px',
-                        boxShadow: '0 4px 20px rgba(232,160,168,0.15), 0 1px 6px rgba(0,0,0,0.04)',
-                    }}
+                    className="glass-elevated"
+                    style={{ borderRadius: '26px' }}
                 >
                     {/* TOP ROW — all generation controls, horizontally scrollable */}
                     <div
-                        className="flex items-center gap-2 px-3 pt-3 pb-2.5 overflow-x-auto scrollbar-hide"
-                        style={{ borderBottom: '1px solid rgba(232,160,168,0.12)' }}
+                        className="flex items-center gap-2 px-4 pt-3.5 pb-3 overflow-x-auto scrollbar-hide"
+                        style={{ borderBottom: '1px solid rgba(212,120,138,0.1)' }}
                     >
                         {/* 1. Generation Type */}
                         <ControlSelect
@@ -186,7 +184,7 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
                         />
 
                         {/* Divider */}
-                        <div className="h-4 w-px shrink-0" style={{ background: 'rgba(232,160,168,0.2)' }} />
+                        <div className="h-4 w-px shrink-0" style={{ background: 'rgba(212,120,138,0.2)' }} />
 
                         {/* 2. Aspect Ratio */}
                         <ControlSelect
@@ -203,7 +201,7 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
                         />
 
                         {/* Divider */}
-                        <div className="h-4 w-px shrink-0" style={{ background: 'rgba(232,160,168,0.2)' }} />
+                        <div className="h-4 w-px shrink-0" style={{ background: 'rgba(212,120,138,0.2)' }} />
 
                         {/* 3. Resolution */}
                         <ControlSelect
@@ -220,10 +218,10 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
                         {/* 4. Duration — only shown for video types */}
                         {isVideo && (
                             <>
-                                <div className="h-4 w-px shrink-0" style={{ background: 'rgba(232,160,168,0.2)' }} />
+                                <div className="h-4 w-px shrink-0" style={{ background: 'rgba(212,120,138,0.2)' }} />
                                 <div
                                     className="flex items-center gap-0.5 px-1.5 py-1 rounded-xl shrink-0"
-                                    style={{ background: '#FBF0EE', border: '1px solid rgba(232,160,168,0.2)' }}
+                                    style={{ background: 'rgba(212,120,138,0.08)', border: '1px solid rgba(212,120,138,0.2)' }}
                                 >
                                     {[3, 5, 10].map((d) => (
                                         <button
@@ -232,11 +230,11 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
                                             onClick={() => setDuration(d)}
                                             disabled={isLoading}
                                             className={cn(
-                                                'px-2.5 py-0.5 text-[11px] font-semibold rounded-lg transition-all shrink-0',
-                                                duration === d ? 'text-white' : 'text-[#C4B0B3] hover:text-[#C8707A]'
+                                                'px-2.5 py-0.5 text-[11px] font-bold rounded-lg transition-all shrink-0',
+                                                duration === d ? 'text-white' : 'text-[#BFB0AB] hover:text-[#D4788A]'
                                             )}
                                             style={duration === d ? {
-                                                background: 'linear-gradient(135deg, #E8A0A8, #D4757F)',
+                                                background: 'linear-gradient(135deg, #D4788A, #A84D60)',
                                             } : {}}
                                         >
                                             {d}s
@@ -248,17 +246,15 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
                     </div>
 
                     {/* BOTTOM ROW — Attach + Textarea + Send */}
-                    <div className="flex items-end gap-1.5 px-2 py-2">
+                    <div className="flex items-end gap-2 px-3 py-2.5">
                         <button
                             type="button"
                             onClick={handleAttach}
                             disabled={isLoading}
-                            className="w-9 h-9 rounded-full flex items-center justify-center transition-colors disabled:opacity-40"
-                            style={{ color: '#C4B0B3' }}
-                            onMouseEnter={(e) => (e.currentTarget.style.color = '#E8A0A8')}
-                            onMouseLeave={(e) => (e.currentTarget.style.color = '#C4B0B3')}
+                            className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-90 disabled:opacity-40"
+                            style={{ background: 'rgba(212,120,138,0.08)', color: '#D4788A' }}
                         >
-                            <Plus size={21} strokeWidth={2} />
+                            <Plus size={20} strokeWidth={2.5} />
                         </button>
 
                         <textarea
@@ -269,20 +265,24 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
                             onKeyDown={handleKeyDown}
                             placeholder="Describe what you want to create..."
                             disabled={isLoading}
-                            className="flex-1 bg-transparent border-none outline-none focus:ring-0 py-2 px-1 resize-none text-[15px] max-h-[120px] scrollbar-hide font-light text-[#2D2426]"
+                            className="flex-1 bg-transparent border-none outline-none focus:ring-0 py-2 px-1 resize-none text-[15px] max-h-[120px] scrollbar-hide font-light"
+                            style={{ color: '#1C1410' }}
                         />
 
                         <button
                             type="submit"
                             disabled={!canSend}
-                            className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-30"
+                            className={cn(
+                                'w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-90',
+                                canSend && 'pulse-glow'
+                            )}
                             style={canSend ? {
-                                background: 'linear-gradient(135deg, #E8A0A8, #D4757F)',
-                                boxShadow: '0 2px 8px rgba(232,160,168,0.5)',
+                                background: 'linear-gradient(135deg, #D4788A 0%, #A84D60 100%)',
                                 color: 'white',
+                                boxShadow: '0 4px 16px rgba(212,120,138,0.4)',
                             } : {
-                                background: '#F5E8E4',
-                                color: '#C4B0B3',
+                                background: 'rgba(212,120,138,0.08)',
+                                color: '#BFB0AB',
                             }}
                         >
                             <Send size={16} fill="currentColor" />
