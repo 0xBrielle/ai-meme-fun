@@ -76,21 +76,17 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
     const [aspectRatio, setAspectRatio] = React.useState<AspectRatio>('9:16')
     const [resolution, setResolution] = React.useState<Resolution>('2k')
 
-    // Auto-switch generation type when attachment changes
+    // Auto-switch type when attachment changes
     React.useEffect(() => {
         if (!attachment) {
-            // No attachment — must be a text-based type
+            // No attachment → must be text-based
             if (generationType !== 'text-to-image' && generationType !== 'text-to-video') {
                 setGenerationType('text-to-image')
             }
         } else {
-            // Attachment present — switch text-only types to their image equivalents
-            if (generationType === 'text-to-image') {
-                setGenerationType('image-to-image')
-            } else if (generationType === 'text-to-video') {
-                setGenerationType('image-to-video')
-            }
-            // image-to-image, image-to-video, video-to-video stay as-is
+            // Attachment present → switch text-only types to image equivalents
+            if (generationType === 'text-to-image') setGenerationType('image-to-image')
+            else if (generationType === 'text-to-video') setGenerationType('image-to-video')
         }
     }, [attachment])
 
