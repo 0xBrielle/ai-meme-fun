@@ -102,7 +102,19 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
     const handleSend = (e?: React.FormEvent) => {
         e?.preventDefault()
         if ((!input.trim() && !attachment) || isLoading) return
-        onSend(input.trim(), attachment, generationType, duration, aspectRatio, resolution)
+
+        // Resolve effective type at send time — if image is attached but type is text-only,
+        // upgrade it to the image equivalent so the API always receives the right type.
+        let effectiveType: GenerationType = generationType
+        if (attachment && generationType === 'text-to-image') {
+            effectiveType = 'image-to-image'
+        } else if (attachment && generationType === 'text-to-video') {
+            effectiveType = 'image-to-video'
+        } else if (!attachment && generationType !== 'text-to-image' && generationType !== 'text-to-video') {
+            effectiveType = 'text-to-image'
+        }
+
+        onSend(input.trim(), attachment, effectiveType, duration, aspectRatio, resolution)
         setInput('')
         setAttachment(null)
         if (textareaRef.current) textareaRef.current.style.height = 'auto'
