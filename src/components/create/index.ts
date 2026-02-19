@@ -1,4 +1,4 @@
-export * from './image-upload'
-export * from './prompt-input'
-export * from './generate-button'
+export * from './chat-bar'
+export * from './generation-settings'
+export * from './result-feed'
 export * from './processing-overlay'

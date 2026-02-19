@@ -1,48 +1,76 @@
 'use client'
 
 import * as React from 'react'
-import { ImageUpload, PromptInput, GenerateButton, ProcessingOverlay } from '@/components/create'
-import { ResultModal } from '@/components/result'
+import {
+    ChatBar,
+    GenerationSettings,
+    GenerationType,
+    ResultFeed
+} from '@/components/create'
 import { generateImage } from '@/services/ai'
 import { useGenerationStore } from '@/stores/generation-store'
 import { showToast } from '@/lib/toast'
 import { Generation } from '@/types'
 import { generateId } from '@/lib/utils'
 
+interface Message {
+    id: string
+    role: 'user' | 'assistant'
+    content?: string
+    image?: string
+    generation?: Generation
+    status?: 'loading' | 'error' | 'success'
+}
+
 export default function CreatePage() {
-    const [selectedImage, setSelectedImage] = React.useState<string | null>(null)
-    const [prompt, setPrompt] = React.useState('')
+    const [messages, setMessages] = React.useState<Message[]>([])
+    const [genType, setGenType] = React.useState<GenerationType>('text-to-image')
+    const [duration, setDuration] = React.useState(5)
 
     const {
         isGenerating,
-        progress,
-        currentResult,
         startGeneration,
         setResult,
         setError,
-        reset
     } = useGenerationStore()
 
-    const handleGenerate = async () => {
-        if (!prompt.trim()) {
-            showToast.error('Please enter a description.')
-            return
+    const handleSend = async (prompt: string, attachment: string | null) => {
+        const userMessageId = generateId()
+        const assistantMessageId = generateId()
+
+        // 1. Add user message to feed
+        const userMsg: Message = {
+            id: userMessageId,
+            role: 'user',
+            content: prompt,
+            image: attachment || undefined
         }
+        setMessages(prev => [...prev, userMsg])
+
+        // 2. Add loading assistant message
+        const assistantMsg: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            status: 'loading'
+        }
+        setMessages(prev => [...prev, assistantMsg])
 
         startGeneration()
 
         try {
             const response = await generateImage({
                 prompt,
-                inputImage: selectedImage || undefined,
+                inputImage: attachment || undefined,
+                // Pass extra params for video if needed
+                ...(genType.includes('video') ? { duration, type: genType } : {})
             })
 
             if (response.success && response.outputUrls?.length) {
                 const generation: Generation = {
                     id: generateId(),
-                    type: 'image',
+                    type: genType.includes('video') ? 'video' : 'image',
                     prompt,
-                    inputImageUrl: selectedImage,
+                    inputImageUrl: attachment,
                     outputUrl: response.outputUrls[0]!,
                     templateId: null,
                     creditsUsed: 1,
@@ -51,80 +79,80 @@ export default function CreatePage() {
                     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
                 }
 
+                // Update assistant message with result
+                setMessages(prev => prev.map(m =>
+                    m.id === assistantMessageId
+                        ? { ...m, status: 'success', generation }
+                        : m
+                ))
+
                 setResult(generation)
-                showToast.success('Image generated!')
             } else {
-                throw new Error(response.error || 'Failed to generate image')
+                throw new Error(response.error || 'Failed to generate')
             }
         } catch (error: any) {
             setError(error.message)
             showToast.error(error.message)
+
+            // Update assistant message with error
+            setMessages(prev => prev.map(m =>
+                m.id === assistantMessageId
+                    ? { ...m, status: 'error' }
+                    : m
+            ))
         }
     }
 
-    const handleDownload = () => {
-        if (!currentResult) return
+    const handleDownload = (gen: Generation) => {
         const link = document.createElement('a')
-        link.href = currentResult.outputUrl
-        link.download = `ai-meme-${currentResult.id}.png`
+        link.href = gen.outputUrl
+        link.download = `ai-meme-${gen.id}.${gen.type === 'video' ? 'mp4' : 'png'}`
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
     }
 
-    const handleShare = async () => {
-        showToast.info('Sharing is coming soon to the web!')
+    const handleShare = async (gen: Generation) => {
+        showToast.info('Sharing is coming soon!')
     }
 
     return (
-        <div className="py-8 space-y-8 max-w-2xl mx-auto">
-            <div className="space-y-2 text-center md:text-left">
-                <h1 className="text-3xl font-bold">Create Something Fun</h1>
-                <p className="text-gray-400">Describe what you want to achieve or use an image to start.</p>
-            </div>
-
-            <div className="grid gap-8">
-                <ImageUpload
-                    value={selectedImage}
-                    onChange={setSelectedImage}
-                    disabled={isGenerating}
-                />
-
-                <PromptInput
-                    value={prompt}
-                    onChange={setPrompt}
-                    disabled={isGenerating}
-                />
-
-                <div className="pt-4">
-                    <GenerateButton
-                        onClick={handleGenerate}
-                        isLoading={isGenerating}
+        <main className="relative flex flex-col h-[100dvh] bg-background overflow-hidden">
+            {/* Header / Settings area */}
+            <div className="safe-top bg-gradient-to-b from-background to-transparent z-40">
+                <div className="flex items-center justify-between px-4 py-3">
+                    <h1 className="text-xl font-semibold tracking-tight">Create</h1>
+                    <GenerationSettings
+                        type={genType}
+                        onTypeChange={setGenType}
+                        duration={duration}
+                        onDurationChange={setDuration}
+                        disabled={isGenerating}
                     />
                 </div>
             </div>
 
-            <ProcessingOverlay
-                isVisible={isGenerating}
-                progress={progress.progress}
-                status={progress.message || 'Creating your image...'}
-                inputImage={selectedImage}
-                prompt={prompt}
-            />
-
-            <ResultModal
-                imageUrl={currentResult?.outputUrl || null}
-                isOpen={!!currentResult}
-                onClose={reset}
+            {/* Scrollable Feed */}
+            <ResultFeed
+                messages={messages}
                 onDownload={handleDownload}
                 onShare={handleShare}
-                onRegenerate={handleGenerate}
-                prompt={prompt}
             />
 
-            {/* Background decoration */}
-            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 blur-[120px] rounded-full -z-10" />
-            <div className="fixed bottom-0 right-0 w-[300px] h-[300px] bg-secondary/10 blur-[100px] rounded-full -z-10" />
-        </div>
+            {/* Bottom Input */}
+            <ChatBar
+                onSend={handleSend}
+                isLoading={isGenerating}
+                placeholder={
+                    genType === 'text-to-image' ? "Describe an image..." :
+                        genType === 'text-to-video' ? "Describe a video scene..." :
+                            "What should happen?"
+                }
+            />
+
+            {/* Refined Background decoration */}
+            <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/5 blur-[120px] rounded-full pointer-events-none -z-10" />
+            <div className="fixed bottom-[-5%] right-[-5%] w-[30%] h-[30%] bg-white/5 blur-[100px] rounded-full pointer-events-none -z-10" />
+        </main>
     )
 }

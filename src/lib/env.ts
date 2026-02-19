@@ -1,7 +1,6 @@
 // Type-safe environment variable access
 export const env = {
     // AI APIs
-    replicateToken: process.env.REPLICATE_API_TOKEN || process.env.NEXT_PUBLIC_REPLICATE_API_TOKEN || '',
     falApiKey: process.env.FAL_API_KEY || process.env.NEXT_PUBLIC_FAL_API_KEY || '',
 
     // Supabase
