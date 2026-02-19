@@ -54,13 +54,19 @@ function ControlSelect({ value, onChange, disabled, options }: ControlSelectProp
     )
 }
 
-const TYPE_OPTIONS: { value: GenerationType; label: string }[] = [
-    { value: 'text-to-image', label: 'Text → Image' },
-    { value: 'image-to-image', label: 'Image → Image' },
-    { value: 'text-to-video', label: 'Text → Video' },
-    { value: 'image-to-video', label: 'Image → Video' },
-    { value: 'video-to-video', label: 'Video → Video' },
-]
+// Derive available options based on whether an attachment exists
+function getTypeOptions(hasAttachment: boolean) {
+    return hasAttachment
+        ? [
+            { value: 'image-to-image', label: 'Image → Image' },
+            { value: 'image-to-video', label: 'Image → Video' },
+            { value: 'video-to-video', label: 'Video → Video' },
+        ]
+        : [
+            { value: 'text-to-image', label: 'Text → Image' },
+            { value: 'text-to-video', label: 'Text → Video' },
+        ]
+}
 
 export function ChatBar({ onSend, isLoading }: ChatBarProps) {
     const [input, setInput] = React.useState('')
@@ -69,6 +75,24 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
     const [duration, setDuration] = React.useState(5)
     const [aspectRatio, setAspectRatio] = React.useState<AspectRatio>('9:16')
     const [resolution, setResolution] = React.useState<Resolution>('2k')
+
+    // Auto-switch generation type when attachment changes
+    React.useEffect(() => {
+        if (!attachment) {
+            // No attachment — must be a text-based type
+            if (generationType !== 'text-to-image' && generationType !== 'text-to-video') {
+                setGenerationType('text-to-image')
+            }
+        } else {
+            // Attachment present — switch text-only types to their image equivalents
+            if (generationType === 'text-to-image') {
+                setGenerationType('image-to-image')
+            } else if (generationType === 'text-to-video') {
+                setGenerationType('image-to-video')
+            }
+            // image-to-image, image-to-video, video-to-video stay as-is
+        }
+    }, [attachment])
 
     const textareaRef = React.useRef<HTMLTextAreaElement>(null)
     const { pickImage } = useImagePicker()
@@ -150,7 +174,7 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
                             value={generationType}
                             onChange={(v) => setGenerationType(v as GenerationType)}
                             disabled={isLoading}
-                            options={TYPE_OPTIONS}
+                            options={getTypeOptions(!!attachment)}
                         />
 
                         {/* Divider */}
