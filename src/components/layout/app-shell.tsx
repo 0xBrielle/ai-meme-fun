@@ -6,13 +6,11 @@ import { BottomTabs } from './bottom-tabs'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     return (
-        <div className="flex flex-col min-h-screen bg-background text-foreground">
+        <div className="flex flex-col h-screen bg-[#F7F7F5] text-[#1A1A1A] overflow-hidden">
             <Header />
-
-            <main className="flex-1 pt-16 pb-20 md:pb-0 px-4 max-w-7xl mx-auto w-full">
+            <main className="flex-1 overflow-y-auto pt-14 pb-0 w-full max-w-3xl mx-auto px-0">
                 {children}
             </main>
-
             <BottomTabs />
         </div>
     )

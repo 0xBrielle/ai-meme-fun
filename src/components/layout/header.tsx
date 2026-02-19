@@ -7,29 +7,31 @@ import { TopNav } from './top-nav'
 
 export function Header() {
     return (
-        <header className="fixed top-0 left-0 right-0 z-40 glass border-b border-white/10 safe-top">
-            <div className="flex items-center justify-between h-14 px-4 max-w-7xl mx-auto w-full">
-                <Link href="/" className="flex items-center">
-                    <span className="text-lg font-semibold tracking-tight text-white">
-                        AI FUN MEME
-                    </span>
-                </Link>
+        <header className="fixed top-0 left-0 right-0 z-40 safe-top"
+            style={{
+                background: 'rgba(247,247,245,0.85)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                borderBottom: '1px solid rgba(0,0,0,0.06)',
+            }}
+        >
+            <div className="flex items-center justify-between h-14 px-5 max-w-3xl mx-auto w-full">
+                <span className="text-[15px] font-semibold tracking-tight text-[#1A1A1A]">
+                    AI Fun Meme
+                </span>
 
-                <TopNav />
-
-                <div className="flex items-center space-x-3">
-                    <div className="flex items-center glass rounded-full px-3 py-1 border border-white/5">
-                        <span className="text-xs font-semibold text-white/40 mr-1.5">CREDITS</span>
-                        <span className="text-sm font-semibold text-white">47</span>
-                        <Button variant="ghost" size="sm" className="ml-1.5 p-0 h-auto w-auto hover:bg-transparent">
-                            <Plus size={14} className="text-white/60 hover:text-white" />
-                        </Button>
+                <div className="flex items-center gap-2">
+                    {/* Credits pill */}
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-black/8 shadow-sm">
+                        <span className="text-[11px] text-[#999] font-medium uppercase tracking-wider">Credits</span>
+                        <span className="text-[13px] font-semibold text-[#1A1A1A]">47</span>
                     </div>
 
+                    {/* Profile */}
                     <Link href="/settings">
-                        <Button variant="ghost" size="sm" className="w-9 h-9 p-0 rounded-full glass border border-white/10 flex items-center justify-center">
-                            <User size={18} className="text-white/60" />
-                        </Button>
+                        <div className="w-8 h-8 rounded-full bg-[#1A1A1A] flex items-center justify-center">
+                            <User size={15} className="text-white" />
+                        </div>
                     </Link>
                 </div>
             </div>

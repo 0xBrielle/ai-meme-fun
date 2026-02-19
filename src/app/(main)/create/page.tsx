@@ -3,7 +3,6 @@
 import * as React from 'react'
 import {
     ChatBar,
-    GenerationSettings,
     GenerationType,
     ResultFeed
 } from '@/components/create'
@@ -24,7 +23,7 @@ interface Message {
 
 export default function CreatePage() {
     const [messages, setMessages] = React.useState<Message[]>([])
-    const [genType, setGenType] = React.useState<GenerationType>('text-to-image')
+    const [generationType, setGenerationType] = React.useState<GenerationType>('text-to-image')
     const [duration, setDuration] = React.useState(5)
 
     const {
@@ -62,13 +61,13 @@ export default function CreatePage() {
                 prompt,
                 inputImage: attachment || undefined,
                 // Pass extra params for video if needed
-                ...(genType.includes('video') ? { duration, type: genType } : {})
+                ...(generationType.includes('video') ? { duration, type: generationType } : {})
             })
 
             if (response.success && response.outputUrls?.length) {
                 const generation: Generation = {
                     id: generateId(),
-                    type: genType.includes('video') ? 'video' : 'image',
+                    type: generationType.includes('video') ? 'video' : 'image',
                     prompt,
                     inputImageUrl: attachment,
                     outputUrl: response.outputUrls[0]!,
@@ -117,42 +116,34 @@ export default function CreatePage() {
     }
 
     return (
-        <main className="relative flex flex-col h-[100dvh] bg-background overflow-hidden">
-            {/* Header / Settings area */}
-            <div className="safe-top bg-gradient-to-b from-background to-transparent z-40">
-                <div className="flex items-center justify-between px-4 py-3">
-                    <h1 className="text-xl font-semibold tracking-tight">Create</h1>
-                    <GenerationSettings
-                        type={genType}
-                        onTypeChange={setGenType}
-                        duration={duration}
-                        onDurationChange={setDuration}
-                        disabled={isGenerating}
-                    />
-                </div>
-            </div>
-
-            {/* Scrollable Feed */}
+        <div className="relative min-h-full pb-52">
+            {/* Result feed area — scrollable */}
             <ResultFeed
                 messages={messages}
                 onDownload={handleDownload}
                 onShare={handleShare}
             />
 
-            {/* Bottom Input */}
+            {/* Chat bar — fixed bottom, includes type selector */}
             <ChatBar
                 onSend={handleSend}
                 isLoading={isGenerating}
+                generationType={generationType}
+                onTypeChange={setGenerationType}
+                duration={duration}
+                onDurationChange={setDuration}
                 placeholder={
-                    genType === 'text-to-image' ? "Describe an image..." :
-                        genType === 'text-to-video' ? "Describe a video scene..." :
+                    generationType === 'text-to-image' ? "Describe an image..." :
+                        generationType === 'text-to-video' ? "Describe a video scene..." :
                             "What should happen?"
                 }
             />
 
-            {/* Refined Background decoration */}
-            <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/5 blur-[120px] rounded-full pointer-events-none -z-10" />
-            <div className="fixed bottom-[-5%] right-[-5%] w-[30%] h-[30%] bg-white/5 blur-[100px] rounded-full pointer-events-none -z-10" />
-        </main>
+            {/* Processing overlay + Result modal unchanged */}
+
+            {/* Updated Background decoration (Subtle light mode) */}
+            <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-black/5 blur-[120px] rounded-full pointer-events-none -z-10" />
+            <div className="fixed bottom-[-5%] right-[-5%] w-[30%] h-[30%] bg-black/5 blur-[100px] rounded-full pointer-events-none -z-10" />
+        </div>
     )
 }
