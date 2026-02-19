@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { env } from '@/lib/env'
 import { ERROR_CODES } from '@/lib/errors'
 
+export const config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '15mb',   // base64 images can be large
+        },
+    },
+}
+
 // ─── Dimension Lookup Table ────────────────────────────────────────────────
 // All values are multiples of 64 (FAL requirement)
 // Resolution base: 1K=1024px, 2K=2048px, 4K=3840px along the longer edge
@@ -44,6 +52,49 @@ function getDimensions(
     const ratio = (aspectRatio ?? '9:16') as AspectRatio
     const res = (resolution ?? '2k') as Resolution
     return DIMENSIONS[ratio]?.[res] ?? DIMENSIONS['9:16']['2k']
+}
+
+// ─── Upload base64 image to FAL CDN ───────────────────────────────────────
+// FAL requires a real HTTPS URL for image_url — base64 data URIs are ignored.
+// This uploads the image to FAL's storage and returns a public CDN URL.
+async function uploadImageToFal(dataUrl: string, apiKey: string): Promise<string> {
+    // Parse the data URI
+    const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/)
+    if (!matches) throw new Error('Invalid image data URI')
+
+    const mimeType = matches[1]           // e.g. 'image/jpeg'
+    const base64Data = matches[2]         // raw base64 string
+
+    // Convert base64 to Uint8Array for Blob compatibility
+    const binaryString = atob(base64Data)
+    const bytes = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+    }
+
+    // Build multipart form
+    const blob = new Blob([bytes], { type: mimeType })
+    const formData = new FormData()
+    formData.append('file', blob, 'reference.jpg')
+
+    const res = await fetch('https://rest.alpha.fal.ai/storage/upload', {
+        method: 'POST',
+        headers: {
+            Authorization: `Key ${apiKey}`,
+            // Do NOT set Content-Type — let fetch set it with the boundary
+        },
+        body: formData,
+    })
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(`FAL upload failed: ${err.message ?? res.status}`)
+    }
+
+    const data = await res.json()
+    // FAL returns { url: 'https://fal-cdn.batista.workers.dev/files/...' }
+    if (!data.url) throw new Error('FAL upload returned no URL')
+    return data.url as string
 }
 
 function resolveFalEndpoint(type: string, model: string | undefined, hasInputImage: boolean) {
@@ -124,13 +175,34 @@ export async function POST(req: NextRequest) {
         const hasInputImage = !!inputImage
         const isVideoType = type?.includes('video')
 
-        const falEndpoint = resolveFalEndpoint(type, model, hasInputImage)
+        // If inputImage is a base64 data URI, upload it to FAL CDN to get a real HTTPS URL.
+        // FAL endpoints require HTTPS URLs — they silently ignore base64 data URIs.
+        let resolvedImageUrl: string | undefined = undefined
+        if (inputImage) {
+            if (inputImage.startsWith('data:')) {
+                try {
+                    resolvedImageUrl = await uploadImageToFal(inputImage, env.falApiKey)
+                    console.log('[FAL] Uploaded image to CDN:', resolvedImageUrl)
+                } catch (uploadErr: any) {
+                    console.error('[FAL] Image upload failed:', uploadErr.message)
+                    return NextResponse.json(
+                        { error: `Image upload failed: ${uploadErr.message}`, code: 'UPLOAD_ERROR' },
+                        { status: 500 }
+                    )
+                }
+            } else {
+                // Already a URL (e.g. previously uploaded)
+                resolvedImageUrl = inputImage
+            }
+        }
+
+        const falEndpoint = resolveFalEndpoint(type, model, !!resolvedImageUrl)
 
         // Pass aspectRatio + resolution into body builder
         const requestBody = buildRequestBody(
             type,
             prompt,
-            inputImage,
+            resolvedImageUrl,   // ← use the CDN URL, not the raw base64
             durationSeconds,
             aspectRatio,
             resolution,
