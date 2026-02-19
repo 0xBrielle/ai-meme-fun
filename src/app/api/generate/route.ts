@@ -46,10 +46,13 @@ function getDimensions(
     return DIMENSIONS[ratio]?.[res] ?? DIMENSIONS['9:16']['2k']
 }
 
-function resolveFalEndpoint(type: string, model: string | undefined) {
+function resolveFalEndpoint(type: string, model: string | undefined, hasInputImage: boolean) {
     if (model) return model
     if (type.includes('video')) return 'fal-ai/veo3'
-    return 'fal-ai/nano-banana'   // ALL image types use nano-banana
+    // nano-banana is text-to-image only — it CANNOT use image references.
+    // When an image is attached, route to flux/dev/image-to-image which actually reads the photo.
+    if (hasInputImage) return 'fal-ai/flux/dev/image-to-image'
+    return 'fal-ai/nano-banana'
 }
 
 function parseOutputUrl(data: any, isVideo: boolean) {
@@ -121,7 +124,7 @@ export async function POST(req: NextRequest) {
         const hasInputImage = !!inputImage
         const isVideoType = type?.includes('video')
 
-        const falEndpoint = resolveFalEndpoint(type, model)
+        const falEndpoint = resolveFalEndpoint(type, model, hasInputImage)
 
         // Pass aspectRatio + resolution into body builder
         const requestBody = buildRequestBody(
