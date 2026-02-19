@@ -2,105 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { env } from '@/lib/env'
 import { ERROR_CODES } from '@/lib/errors'
 
-// ─── Dimension Lookup Table ────────────────────────────────────────────────
-// All values are multiples of 64 (FAL requirement)
-// Resolution base: 1K=1024px, 2K=2048px, 4K=3840px along the longer edge
-
-type AspectRatio = '4:3' | '1:1' | '3:4' | '9:16' | '5:4'
-type Resolution = '1k' | '2k' | '4k'
-
-const DIMENSIONS: Record<AspectRatio, Record<Resolution, { width: number; height: number }>> = {
-    '4:3': {
-        '1k': { width: 1024, height: 768 },
-        '2k': { width: 2048, height: 1536 },
-        '4k': { width: 3840, height: 2880 },
-    },
-    '1:1': {
-        '1k': { width: 1024, height: 1024 },
-        '2k': { width: 2048, height: 2048 },
-        '4k': { width: 3840, height: 3840 },
-    },
-    '3:4': {
-        '1k': { width: 768, height: 1024 },
-        '2k': { width: 1536, height: 2048 },
-        '4k': { width: 2880, height: 3840 },
-    },
-    '9:16': {
-        '1k': { width: 576, height: 1024 },
-        '2k': { width: 1152, height: 2048 },
-        '4k': { width: 2160, height: 3840 },
-    },
-    '5:4': {
-        '1k': { width: 1280, height: 1024 },
-        '2k': { width: 2560, height: 2048 },
-        '4k': { width: 3200, height: 2560 },
-    },
-}
-
-function getDimensions(
-    aspectRatio: AspectRatio | string | undefined,
-    resolution: Resolution | string | undefined
-): { width: number; height: number } {
-    const ratio = (aspectRatio ?? '9:16') as AspectRatio
-    const res = (resolution ?? '2k') as Resolution
-    return DIMENSIONS[ratio]?.[res] ?? DIMENSIONS['9:16']['2k']
-}
-
-// ─── Upload base64 image to FAL CDN ───────────────────────────────────────
-// FAL requires a real HTTPS URL for image_url — base64 data URIs are ignored.
-// This uploads the image to FAL's storage and returns a public CDN URL.
-async function uploadImageToFal(dataUrl: string, apiKey: string): Promise<string> {
-    // Parse the data URI
-    const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/)
-    if (!matches || !matches[2]) throw new Error('Invalid image data URI')
-
-    const mimeType = matches[1]           // e.g. 'image/jpeg'
-    const base64Data = matches[2]         // raw base64 string
-
-    // Convert base64 to Uint8Array for Blob compatibility
-    const binaryString = atob(base64Data)
-    const bytes = new Uint8Array(binaryString.length)
-    for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i)
-    }
-
-    // Build multipart form
-    const blob = new Blob([bytes], { type: mimeType })
-    const formData = new FormData()
-    formData.append('file', blob, 'reference.jpg')
-
-    const res = await fetch('https://rest.alpha.fal.ai/storage/upload', {
-        method: 'POST',
-        headers: {
-            Authorization: `Key ${apiKey}`,
-            // Do NOT set Content-Type — let fetch set it with the boundary
-        },
-        body: formData,
-    })
-
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(`FAL upload failed: ${err.message ?? res.status}`)
-    }
-
-    const data = await res.json()
-    // FAL returns { url: 'https://fal-cdn.batista.workers.dev/files/...' }
-    if (!data.url) throw new Error('FAL upload returned no URL')
-    return data.url as string
-}
-
-function resolveFalEndpoint(type: string, model: string | undefined, hasInputImage: boolean) {
-    if (model) return model
+function resolveFalEndpoint(type: string, hasInputImage: boolean): string {
     if (type.includes('video')) return 'fal-ai/veo3'
-    // nano-banana is text-to-image only — it CANNOT use image references.
-    // When an image is attached, route to flux/dev/image-to-image which actually reads the photo.
-    if (hasInputImage) return 'fal-ai/flux/dev/image-to-image'
+    if (hasInputImage) return 'fal-ai/nano-banana/edit'
     return 'fal-ai/nano-banana'
-}
-
-function parseOutputUrl(data: any, isVideo: boolean) {
-    if (isVideo) return data.video?.url || data.url
-    return data.images?.[0]?.url || data.output?.[0]
 }
 
 function buildRequestBody(
@@ -109,52 +14,61 @@ function buildRequestBody(
     inputImage: string | undefined,
     durationSeconds: number | undefined,
     aspectRatio: string | undefined,
-    resolution: string | undefined,
 ): Record<string, any> {
     const isVideoType = type?.includes('video')
-    const { width, height } = getDimensions(aspectRatio, resolution)
+    // NanoBanana uses aspect_ratio as a plain string e.g. "9:16"
+    // Fall back to "auto" if not provided
+    const ratio = aspectRatio ?? 'auto'
 
-    // ── Video → VEO3 ──────────────────────────────────────────────────────
+    // ── VEO3 Video ────────────────────────────────────────────────────────
     if (isVideoType) {
         return {
             prompt,
             ...(inputImage && { image_url: inputImage }),
             duration: durationSeconds ?? 5,
-            aspect_ratio: aspectRatio ?? '9:16',
+            aspect_ratio: ratio,
         }
     }
 
-    // ── Image → NanoBanana ────────────────────────────────────────────────
-    // Pass image_url when a reference image is attached (image-to-image).
-    // NanoBanana uses it as a reference; strength controls how closely
-    // the output follows the reference (0.5 = close to reference).
-    return {
-        prompt: `${prompt}, ultra realistic, high detail, photorealistic, sharp focus`,
-        ...(inputImage && {
-            image_url: inputImage,
-            strength: 0.5,
-        }),
-        num_inference_steps: 50,
-        guidance_scale: 7.5,
-        image_size: { width, height },
-        output_format: 'jpeg',
-        output_quality: 95,
-        enable_safety_checker: false,
-        num_images: 1,
+    // ── NanoBanana Image-to-Image (edit endpoint) ─────────────────────────
+    if (inputImage) {
+        return {
+            prompt,
+            image_urls: [inputImage],   // ARRAY — this is how nano-banana/edit works
+            aspect_ratio: ratio,
+            num_images: 1,
+            output_format: 'jpeg',
+            safety_tolerance: '4',
+        }
     }
+
+    // ── NanoBanana Text-to-Image ──────────────────────────────────────────
+    return {
+        prompt: `${prompt}, ultra realistic, high detail, photorealistic`,
+        aspect_ratio: ratio,
+        num_images: 1,
+        output_format: 'jpeg',
+        safety_tolerance: '4',
+    }
+}
+
+function parseOutputUrl(data: any, isVideo: boolean): string | null {
+    if (isVideo) {
+        // VEO3 returns { video: { url: string } }
+        return data?.video?.url ?? null
+    }
+    // NanoBanana returns { images: [{ url: string }] }
+    return data?.images?.[0]?.url ?? null
 }
 
 export async function POST(req: NextRequest) {
     try {
         const {
-            provider,
             prompt,
             inputImage,
-            model,
             type = 'text-to-image',
             durationSeconds,
             aspectRatio,
-            resolution,
         } = await req.json()
 
         if (!prompt) {
@@ -167,42 +81,18 @@ export async function POST(req: NextRequest) {
         const hasInputImage = !!inputImage
         const isVideoType = type?.includes('video')
 
-        // If inputImage is a base64 data URI, upload it to FAL CDN to get a real HTTPS URL.
-        // FAL endpoints require HTTPS URLs — they silently ignore base64 data URIs.
-        let resolvedImageUrl: string | undefined = undefined
-        if (inputImage) {
-            if (inputImage.startsWith('data:')) {
-                try {
-                    resolvedImageUrl = await uploadImageToFal(inputImage, env.falApiKey)
-                    console.log('[FAL] Uploaded image to CDN:', resolvedImageUrl)
-                } catch (uploadErr: any) {
-                    console.error('[FAL] Image upload failed:', uploadErr.message)
-                    return NextResponse.json(
-                        { error: `Image upload failed: ${uploadErr.message}`, code: 'UPLOAD_ERROR' },
-                        { status: 500 }
-                    )
-                }
-            } else {
-                // Already a URL (e.g. previously uploaded)
-                resolvedImageUrl = inputImage
-            }
-        }
+        const falEndpoint = resolveFalEndpoint(type, hasInputImage)
 
-        const falEndpoint = resolveFalEndpoint(type, model, !!resolvedImageUrl)
-
-        // Pass aspectRatio + resolution into body builder
+        // NanoBanana accepts base64 data URIs directly in image_urls — no upload needed
         const requestBody = buildRequestBody(
             type,
             prompt,
-            resolvedImageUrl,   // ← use the CDN URL, not the raw base64
+            inputImage,         // pass as-is: base64 data URI or URL both work
             durationSeconds,
             aspectRatio,
-            resolution,
         )
 
-        console.log(`[FAL] Endpoint: ${falEndpoint} | ${aspectRatio ?? '9:16'} @ ${resolution ?? '2k'}`, {
-            dimensions: getDimensions(aspectRatio, resolution),
-        })
+        console.log(`[FAL] → ${falEndpoint} | type: ${type} | hasImage: ${hasInputImage}`)
 
         const response = await fetch(`https://fal.run/${falEndpoint}`, {
             method: 'POST',
@@ -230,7 +120,7 @@ export async function POST(req: NextRequest) {
         const outputUrl = parseOutputUrl(data, isVideoType)
 
         if (!outputUrl) {
-            console.error('[FAL] Unexpected response:', data)
+            console.error('[FAL] Unexpected response shape:', data)
             return NextResponse.json(
                 { error: 'No output URL in FAL response', code: 'FAL_PARSE_ERROR' },
                 { status: 500 }
@@ -239,10 +129,8 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             output: [outputUrl],
-            model: falEndpoint,
+            endpoint: falEndpoint,
             type,
-            aspectRatio,
-            resolution,
         })
 
     } catch (error: any) {

@@ -72,7 +72,7 @@ export default function CreatePage() {
                 const res = await generateVideo({
                     prompt,
                     inputImage: attachment || undefined,
-                    model: 'fal-ai/veo3',           // Veo3 model endpoint
+                    // No model specified — route.ts decides: fal-ai/veo3
                     durationSeconds: duration,
                     type,
                     aspectRatio,
@@ -87,7 +87,7 @@ export default function CreatePage() {
                     prompt,
                     inputImage: attachment || undefined,
                     // No model specified — route.ts decides:
-                    // attachment present → fal-ai/flux/dev/image-to-image
+                    // attachment present → fal-ai/nano-banana/edit
                     // no attachment     → fal-ai/nano-banana
                     type,
                     aspectRatio,
