@@ -2,14 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { env } from '@/lib/env'
 import { ERROR_CODES } from '@/lib/errors'
 
-export const config = {
-    api: {
-        bodyParser: {
-            sizeLimit: '15mb',   // base64 images can be large
-        },
-    },
-}
-
 // ─── Dimension Lookup Table ────────────────────────────────────────────────
 // All values are multiples of 64 (FAL requirement)
 // Resolution base: 1K=1024px, 2K=2048px, 4K=3840px along the longer edge
@@ -60,7 +52,7 @@ function getDimensions(
 async function uploadImageToFal(dataUrl: string, apiKey: string): Promise<string> {
     // Parse the data URI
     const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/)
-    if (!matches) throw new Error('Invalid image data URI')
+    if (!matches || !matches[2]) throw new Error('Invalid image data URI')
 
     const mimeType = matches[1]           // e.g. 'image/jpeg'
     const base64Data = matches[2]         // raw base64 string
