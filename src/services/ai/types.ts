@@ -1,6 +1,9 @@
 export interface AIGenerationRequest {
     prompt: string
-    inputImage?: string // Base64 string
+    inputImage?: string
+    model?: string             // FAL model endpoint
+    type?: string              // generation type string
+    durationSeconds?: number   // for video
     width?: number
     height?: number
     numOutputs?: number
@@ -11,9 +14,4 @@ export interface AIGenerationResponse {
     outputUrls?: string[]
     error?: string
     processingTimeMs?: number
-}
-
-export interface AIProvider {
-    name: string
-    generate: (request: AIGenerationRequest) => Promise<AIGenerationResponse>
 }

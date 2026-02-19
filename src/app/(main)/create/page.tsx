@@ -1,149 +1,143 @@
 'use client'
 
 import * as React from 'react'
-import {
-    ChatBar,
-    GenerationType,
-    ResultFeed
-} from '@/components/create'
-import { generateImage } from '@/services/ai'
+import { ChatBar } from '@/components/create/chat-bar'
+import { ResultFeed } from '@/components/create/result-feed'
+import { ProcessingOverlay } from '@/components/create/processing-overlay'
+import { useConversationStore } from '@/stores/conversation-store'
 import { useGenerationStore } from '@/stores/generation-store'
+import { generateImage, generateVideo } from '@/services/ai'
+import { ChatMessage, GenerationType } from '@/types/conversation'
 import { showToast } from '@/lib/toast'
-import { Generation } from '@/types'
 import { generateId } from '@/lib/utils'
 
-interface Message {
-    id: string
-    role: 'user' | 'assistant'
-    content?: string
-    image?: string
-    generation?: Generation
-    status?: 'loading' | 'error' | 'success'
-}
-
 export default function CreatePage() {
-    const [messages, setMessages] = React.useState<Message[]>([])
-    const [generationType, setGenerationType] = React.useState<GenerationType>('text-to-image')
-    const [duration, setDuration] = React.useState(5)
+    const { activeConversationId, createConversation, addMessage, updateMessage, getActiveConversation } =
+        useConversationStore()
+    const { isGenerating, startGeneration, setResult, setError } = useGenerationStore()
 
-    const {
-        isGenerating,
-        startGeneration,
-        setResult,
-        setError,
-    } = useGenerationStore()
+    // Ensure there's always an active conversation
+    React.useEffect(() => {
+        if (!activeConversationId) createConversation()
+    }, [activeConversationId])
 
-    const handleSend = async (prompt: string, attachment: string | null) => {
-        const userMessageId = generateId()
-        const assistantMessageId = generateId()
+    const conversation = getActiveConversation()
+    const messages = conversation?.messages ?? []
 
-        // 1. Add user message to feed
-        const userMsg: Message = {
-            id: userMessageId,
+    const handleSend = async (
+        prompt: string,
+        attachment: string | null,
+        type: GenerationType,
+        duration: number
+    ) => {
+        const conversationId = activeConversationId ?? createConversation()
+
+        // Add user message
+        const userMsgId = generateId()
+        addMessage(conversationId, {
+            id: userMsgId,
             role: 'user',
-            content: prompt,
-            image: attachment || undefined
-        }
-        setMessages(prev => [...prev, userMsg])
+            content: prompt || undefined,
+            image: attachment || undefined,
+            generationType: type,
+            createdAt: new Date().toISOString(),
+        })
 
-        // 2. Add loading assistant message
-        const assistantMsg: Message = {
-            id: assistantMessageId,
+        // Add placeholder assistant message
+        const assistantMsgId = generateId()
+        addMessage(conversationId, {
+            id: assistantMsgId,
             role: 'assistant',
-            status: 'loading'
-        }
-        setMessages(prev => [...prev, assistantMsg])
+            status: 'loading',
+            generationType: type,
+            createdAt: new Date().toISOString(),
+        })
 
         startGeneration()
 
         try {
-            const response = await generateImage({
-                prompt,
-                inputImage: attachment || undefined,
-                // Pass extra params for video if needed
-                ...(generationType.includes('video') ? { duration, type: generationType } : {})
+            const isVideoType = type.includes('video')
+
+            let outputUrl: string
+            let processingTimeMs: number
+
+            if (isVideoType) {
+                // Route to Veo3 via FAL
+                const res = await generateVideo({
+                    prompt,
+                    inputImage: attachment || undefined,
+                    model: 'fal-ai/veo3',           // Veo3 model endpoint
+                    durationSeconds: duration,
+                    type,
+                })
+                if (!res.success || !res.outputUrls?.[0]) throw new Error(res.error ?? 'Video generation failed')
+                outputUrl = res.outputUrls[0]
+                processingTimeMs = res.processingTimeMs ?? 0
+            } else {
+                // Route to Nano Banana via FAL for image generation
+                const res = await generateImage({
+                    prompt,
+                    inputImage: attachment || undefined,
+                    model: 'fal-ai/nano-banana',    // Nano Banana model endpoint
+                    type,
+                })
+                if (!res.success || !res.outputUrls?.[0]) throw new Error(res.error ?? 'Image generation failed')
+                outputUrl = res.outputUrls[0]
+                processingTimeMs = res.processingTimeMs ?? 0
+            }
+
+            updateMessage(conversationId, assistantMsgId, {
+                status: 'success',
+                outputUrl,
+                outputType: isVideoType ? 'video' : 'image',
+                processingTimeMs,
             })
 
-            if (response.success && response.outputUrls?.length) {
-                const generation: Generation = {
-                    id: generateId(),
-                    type: generationType.includes('video') ? 'video' : 'image',
-                    prompt,
-                    inputImageUrl: attachment,
-                    outputUrl: response.outputUrls[0]!,
-                    templateId: null,
-                    creditsUsed: 1,
-                    processingTimeMs: response.processingTimeMs || null,
-                    createdAt: new Date().toISOString(),
-                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-                }
+            setResult({
+                id: assistantMsgId,
+                type: isVideoType ? 'video' : 'image',
+                prompt,
+                inputImageUrl: attachment,
+                outputUrl,
+                templateId: null,
+                creditsUsed: 1,
+                processingTimeMs,
+                createdAt: new Date().toISOString(),
+                expiresAt: new Date(Date.now() + 86400000).toISOString(),
+            })
 
-                // Update assistant message with result
-                setMessages(prev => prev.map(m =>
-                    m.id === assistantMessageId
-                        ? { ...m, status: 'success', generation }
-                        : m
-                ))
-
-                setResult(generation)
-            } else {
-                throw new Error(response.error || 'Failed to generate')
-            }
-        } catch (error: any) {
-            setError(error.message)
-            showToast.error(error.message)
-
-            // Update assistant message with error
-            setMessages(prev => prev.map(m =>
-                m.id === assistantMessageId
-                    ? { ...m, status: 'error' }
-                    : m
-            ))
+            showToast.success(isVideoType ? 'Video generated!' : 'Image generated!')
+        } catch (err: any) {
+            updateMessage(conversationId, assistantMsgId, { status: 'error' })
+            setError(err.message)
+            showToast.error(err.message)
         }
     }
 
-    const handleDownload = (gen: Generation) => {
+    const handleDownload = (outputUrl: string, id: string, type: 'image' | 'video') => {
         const link = document.createElement('a')
-        link.href = gen.outputUrl
-        link.download = `ai-meme-${gen.id}.${gen.type === 'video' ? 'mp4' : 'png'}`
+        link.href = outputUrl
+        link.download = `ai-fun-meme-${id}.${type === 'video' ? 'mp4' : 'png'}`
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
     }
 
-    const handleShare = async (gen: Generation) => {
-        showToast.info('Sharing is coming soon!')
-    }
-
     return (
-        <div className="relative min-h-full pb-52">
-            {/* Result feed area — scrollable */}
+        <div className="relative h-full flex flex-col">
             <ResultFeed
                 messages={messages}
-                onDownload={handleDownload}
-                onShare={handleShare}
+                onDownload={(msg) => handleDownload(msg.outputUrl!, msg.id, msg.outputType!)}
+                onShare={() => showToast.info('Sharing coming soon!')}
             />
 
-            {/* Chat bar — fixed bottom, includes type selector */}
-            <ChatBar
-                onSend={handleSend}
-                isLoading={isGenerating}
-                generationType={generationType}
-                onTypeChange={setGenerationType}
-                duration={duration}
-                onDurationChange={setDuration}
-                placeholder={
-                    generationType === 'text-to-image' ? "Describe an image..." :
-                        generationType === 'text-to-video' ? "Describe a video scene..." :
-                            "What should happen?"
-                }
+            <ChatBar onSend={handleSend} isLoading={isGenerating} />
+
+            <ProcessingOverlay
+                isVisible={isGenerating}
+                progress={0}
+                status="Creating your masterpiece…"
             />
-
-            {/* Processing overlay + Result modal unchanged */}
-
-            {/* Updated Background decoration (Subtle light mode) */}
-            <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-black/5 blur-[120px] rounded-full pointer-events-none -z-10" />
-            <div className="fixed bottom-[-5%] right-[-5%] w-[30%] h-[30%] bg-black/5 blur-[100px] rounded-full pointer-events-none -z-10" />
         </div>
     )
 }

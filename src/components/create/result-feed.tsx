@@ -1,23 +1,14 @@
 'use client'
 
 import * as React from 'react'
-import { Generation } from '@/types'
-import { Loader2, Download, Share2, Play } from 'lucide-react'
+import { ChatMessage, GenerationType } from '@/types/conversation'
+import { Download, Share2, Play, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface Message {
-    id: string
-    role: 'user' | 'assistant'
-    content?: string
-    image?: string
-    generation?: Generation
-    status?: 'loading' | 'error' | 'success'
-}
-
 interface ResultFeedProps {
-    messages: Message[]
-    onDownload: (generation: Generation) => void
-    onShare: (generation: Generation) => void
+    messages: ChatMessage[]
+    onDownload: (message: ChatMessage) => void
+    onShare: (message: ChatMessage) => void
 }
 
 export function ResultFeed({ messages, onDownload, onShare }: ResultFeedProps) {
@@ -30,13 +21,22 @@ export function ResultFeed({ messages, onDownload, onShare }: ResultFeedProps) {
     return (
         <div className="flex-1 overflow-y-auto px-4 pt-4 pb-48 space-y-6 scrollbar-hide">
             {messages.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-center space-y-4 pt-20">
-                    <div className="w-16 h-16 rounded-full bg-white border border-black/5 flex items-center justify-center text-black/10">
-                        <Play size={32} />
+                <div className="h-full flex flex-col items-center justify-center gap-4 px-8 pt-20 text-center">
+                    <div className="w-20 h-20 rounded-[28px] flex items-center justify-center"
+                        style={{
+                            background: 'linear-gradient(135deg, #FBF0EE, #F5E8E4)',
+                            border: '1.5px solid rgba(232, 160, 168, 0.2)',
+                        }}
+                    >
+                        <Sparkles size={32} style={{ color: '#E8A0A8' }} />
                     </div>
-                    <div className="space-y-1">
-                        <h2 className="text-xl font-medium text-[#1A1A1A]">Ready to create?</h2>
-                        <p className="text-[#999] font-light px-10">Describe what you want to see, or attach an image to get started.</p>
+                    <div className="space-y-1.5">
+                        <h2 className="text-[22px] font-semibold" style={{ color: '#2D2426' }}>
+                            What will you create?
+                        </h2>
+                        <p className="text-[15px] font-light leading-relaxed" style={{ color: '#9B8A8D' }}>
+                            Type a prompt or attach an image below to get started.
+                        </p>
                     </div>
                 </div>
             )}
@@ -60,7 +60,13 @@ export function ResultFeed({ messages, onDownload, onShare }: ResultFeedProps) {
                                 />
                             )}
                             {message.content && (
-                                <div className="bg-[#1A1A1A] text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-[15px] font-light whitespace-pre-wrap">
+                                <div
+                                    className="max-w-full px-4 py-3 rounded-[20px] rounded-tr-[6px] text-[15px] font-light whitespace-pre-wrap text-white text-left"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #E8A0A8 0%, #D4757F 100%)',
+                                        boxShadow: '0 2px 12px rgba(232, 160, 168, 0.3)',
+                                    }}
+                                >
                                     {message.content}
                                 </div>
                             )}
@@ -69,49 +75,87 @@ export function ResultFeed({ messages, onDownload, onShare }: ResultFeedProps) {
 
                     {/* AI Assistant Output */}
                     {message.role === 'assistant' && (
-                        <div className="max-w-[90%] w-full space-y-3">
+                        <div className="max-w-[92%] w-full space-y-3">
                             {message.status === 'loading' && (
-                                <div className="bg-white border border-black/5 rounded-2xl rounded-tl-sm px-5 py-8 flex flex-col items-center justify-center space-y-4 animate-pulse">
-                                    <Loader2 className="animate-spin text-black/20" size={24} />
-                                    <p className="text-sm font-light text-black/20 italic">Generating your masterpiece...</p>
+                                <div
+                                    className="px-6 py-8 rounded-[24px] rounded-tl-[6px] flex flex-col items-center gap-3"
+                                    style={{
+                                        background: '#FFFFFF',
+                                        border: '1px solid rgba(232, 160, 168, 0.15)',
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+                                    }}
+                                >
+                                    <div className="flex gap-1.5">
+                                        {[0, 1, 2].map((i) => (
+                                            <div key={i}
+                                                className="w-2.5 h-2.5 rounded-full animate-bounce"
+                                                style={{
+                                                    background: '#E8A0A8',
+                                                    animationDelay: `${i * 0.15}s`
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                    <p className="text-[13px] font-light" style={{ color: '#C4B0B3' }}>
+                                        Creating your masterpiece…
+                                    </p>
                                 </div>
                             )}
 
                             {message.status === 'error' && (
-                                <div className="bg-red-50 border border-red-100 rounded-2xl rounded-tl-sm px-4 py-3 text-red-500 text-sm font-light">
-                                    Failed to generate. Please try again.
+                                <div className="bg-red-50 border border-red-100 rounded-[20px] rounded-tl-[6px] px-4 py-3 text-red-500 text-[14px] font-light">
+                                    Oops! Something went wrong. Please try again.
                                 </div>
                             )}
 
-                            {message.generation && (
-                                <div className="group relative">
-                                    <div className="bg-white rounded-3xl overflow-hidden border border-black/10 shadow-lg animate-scale">
-                                        <img
-                                            src={message.generation.outputUrl}
-                                            alt="Generated"
-                                            className="w-full h-auto object-contain bg-black/5"
-                                        />
+                            {message.outputUrl && (
+                                <div className="group relative w-full">
+                                    <div
+                                        className="rounded-[24px] overflow-hidden"
+                                        style={{
+                                            background: '#FFFFFF',
+                                            border: '1px solid rgba(232, 160, 168, 0.2)',
+                                            boxShadow: '0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.03)',
+                                        }}
+                                    >
+                                        {message.outputType === 'video' ? (
+                                            <video
+                                                src={message.outputUrl}
+                                                controls
+                                                className="w-full h-auto"
+                                                autoPlay
+                                                loop
+                                                muted
+                                                playsInline
+                                            />
+                                        ) : (
+                                            <img
+                                                src={message.outputUrl}
+                                                alt="Generated"
+                                                className="w-full h-auto object-contain bg-black/5"
+                                            />
+                                        )}
 
                                         {/* Actions Overlay */}
                                         <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
-                                                onClick={() => onDownload(message.generation!)}
-                                                className="w-10 h-10 rounded-full bg-white/90 backdrop-blur shadow-sm border border-black/5 flex items-center justify-center text-[#1A1A1A]"
+                                                onClick={() => onDownload(message)}
+                                                className="w-9 h-9 rounded-full bg-white/90 backdrop-blur shadow-sm border border-black/5 flex items-center justify-center text-[#2D2426] hover:bg-white transition-colors"
                                             >
-                                                <Download size={18} />
+                                                <Download size={17} />
                                             </button>
                                             <button
-                                                onClick={() => onShare(message.generation!)}
-                                                className="w-10 h-10 rounded-full bg-white/90 backdrop-blur shadow-sm border border-black/5 flex items-center justify-center text-[#1A1A1A]"
+                                                onClick={() => onShare(message)}
+                                                className="w-9 h-9 rounded-full bg-white/90 backdrop-blur shadow-sm border border-black/5 flex items-center justify-center text-[#2D2426] hover:bg-white transition-colors"
                                             >
-                                                <Share2 size={18} />
+                                                <Share2 size={17} />
                                             </button>
                                         </div>
                                     </div>
 
                                     {/* Subtitle / Metadata */}
-                                    <div className="mt-2 text-[11px] text-[#999] uppercase tracking-widest font-semibold px-2">
-                                        FAL.AI • FLUX SCHNELL • {message.generation.processingTimeMs}MS
+                                    <div className="mt-2 text-[10px] text-[#C4B0B3] uppercase tracking-[0.15em] font-bold px-3">
+                                        {message.generationType?.replace(/-/g, ' ')} • {message.processingTimeMs}MS
                                     </div>
                                 </div>
                             )}

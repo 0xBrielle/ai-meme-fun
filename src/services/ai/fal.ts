@@ -7,6 +7,9 @@ export async function generateWithFal(request: AIGenerationRequest): Promise<AIG
     try {
         const data: any = await api.post('/generate', {
             provider: 'fal',
+            model: request.model,
+            type: request.type,
+            durationSeconds: request.durationSeconds,
             ...request,
         })
 
