@@ -7,7 +7,7 @@ import { ProcessingOverlay } from '@/components/create/processing-overlay'
 import { useConversationStore } from '@/stores/conversation-store'
 import { useGenerationStore } from '@/stores/generation-store'
 import { generateImage, generateVideo } from '@/services/ai'
-import { ChatMessage, GenerationType } from '@/types/conversation'
+import { ChatMessage, GenerationType, AspectRatio, Resolution } from '@/types/conversation'
 import { showToast } from '@/lib/toast'
 import { generateId } from '@/lib/utils'
 
@@ -28,7 +28,9 @@ export default function CreatePage() {
         prompt: string,
         attachment: string | null,
         type: GenerationType,
-        duration: number
+        duration: number,
+        aspectRatio: AspectRatio,
+        resolution: Resolution
     ) => {
         const conversationId = activeConversationId ?? createConversation()
 
@@ -40,6 +42,8 @@ export default function CreatePage() {
             content: prompt || undefined,
             image: attachment || undefined,
             generationType: type,
+            aspectRatio,
+            resolution,
             createdAt: new Date().toISOString(),
         })
 
@@ -50,6 +54,8 @@ export default function CreatePage() {
             role: 'assistant',
             status: 'loading',
             generationType: type,
+            aspectRatio,
+            resolution,
             createdAt: new Date().toISOString(),
         })
 
@@ -69,6 +75,8 @@ export default function CreatePage() {
                     model: 'fal-ai/veo3',           // Veo3 model endpoint
                     durationSeconds: duration,
                     type,
+                    aspectRatio,
+                    resolution,
                 })
                 if (!res.success || !res.outputUrls?.[0]) throw new Error(res.error ?? 'Video generation failed')
                 outputUrl = res.outputUrls[0]
@@ -80,6 +88,8 @@ export default function CreatePage() {
                     inputImage: attachment || undefined,
                     model: 'fal-ai/nano-banana',    // Nano Banana model endpoint
                     type,
+                    aspectRatio,
+                    resolution,
                 })
                 if (!res.success || !res.outputUrls?.[0]) throw new Error(res.error ?? 'Image generation failed')
                 outputUrl = res.outputUrls[0]
@@ -91,6 +101,8 @@ export default function CreatePage() {
                 outputUrl,
                 outputType: isVideoType ? 'video' : 'image',
                 processingTimeMs,
+                aspectRatio,
+                resolution,
             })
 
             setResult({

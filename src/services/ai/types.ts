@@ -1,9 +1,11 @@
 export interface AIGenerationRequest {
     prompt: string
     inputImage?: string
-    model?: string             // FAL model endpoint
-    type?: string              // generation type string
-    durationSeconds?: number   // for video
+    model?: string
+    type?: string
+    durationSeconds?: number
+    aspectRatio?: string    // e.g. '16:9', '1:1', '9:16'
+    resolution?: string     // '1k' | '2k' | '4k'
     width?: number
     height?: number
     numOutputs?: number

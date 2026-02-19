@@ -3,20 +3,63 @@
 import * as React from 'react'
 import { Plus, Send, X, Image as ImageIcon, Video, ChevronDown, Sparkles } from 'lucide-react'
 import { useImagePicker } from '@/hooks/use-image-picker'
-import { GenerationType } from '@/types/conversation'
+import { GenerationType, AspectRatio, Resolution } from '@/types/conversation'
 import { cn } from '@/lib/utils'
 
 interface ChatBarProps {
-    onSend: (prompt: string, attachment: string | null, type: GenerationType, duration: number) => void
+    onSend: (
+        prompt: string,
+        attachment: string | null,
+        type: GenerationType,
+        duration: number,
+        aspectRatio: AspectRatio,
+        resolution: Resolution
+    ) => void
     isLoading?: boolean
 }
 
-const TYPE_OPTIONS: { value: GenerationType; label: string; icon: any }[] = [
-    { value: 'text-to-image', label: 'Text → Image', icon: ImageIcon },
-    { value: 'image-to-image', label: 'Image → Image', icon: Sparkles },
-    { value: 'text-to-video', label: 'Text → Video', icon: Video },
-    { value: 'image-to-video', label: 'Image → Video', icon: Video },
-    { value: 'video-to-video', label: 'Video → Video', icon: Video },
+interface ControlSelectProps {
+    value: string
+    onChange: (value: string) => void
+    disabled?: boolean
+    options: { value: string; label: string }[]
+}
+
+function ControlSelect({ value, onChange, disabled, options }: ControlSelectProps) {
+    return (
+        <div className="relative shrink-0">
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                disabled={disabled}
+                className="appearance-none text-[12px] font-semibold pl-2.5 pr-6 py-1.5 rounded-xl cursor-pointer outline-none transition-all disabled:opacity-50"
+                style={{
+                    background: '#FBF0EE',
+                    border: '1px solid rgba(232,160,168,0.25)',
+                    color: '#C8707A',
+                }}
+            >
+                {options.map((o) => (
+                    <option key={o.value} value={o.value} style={{ background: '#FFF', color: '#2D2426' }}>
+                        {o.label}
+                    </option>
+                ))}
+            </select>
+            <ChevronDown
+                size={11}
+                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: '#C8707A' }}
+            />
+        </div>
+    )
+}
+
+const TYPE_OPTIONS: { value: GenerationType; label: string }[] = [
+    { value: 'text-to-image', label: 'Text → Image' },
+    { value: 'image-to-image', label: 'Image → Image' },
+    { value: 'text-to-video', label: 'Text → Video' },
+    { value: 'image-to-video', label: 'Image → Video' },
+    { value: 'video-to-video', label: 'Video → Video' },
 ]
 
 export function ChatBar({ onSend, isLoading }: ChatBarProps) {
@@ -24,6 +67,9 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
     const [attachment, setAttachment] = React.useState<string | null>(null)
     const [generationType, setGenerationType] = React.useState<GenerationType>('text-to-image')
     const [duration, setDuration] = React.useState(5)
+    const [aspectRatio, setAspectRatio] = React.useState<AspectRatio>('9:16')
+    const [resolution, setResolution] = React.useState<Resolution>('2k')
+
     const textareaRef = React.useRef<HTMLTextAreaElement>(null)
     const { pickImage } = useImagePicker()
 
@@ -32,7 +78,7 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
     const handleSend = (e?: React.FormEvent) => {
         e?.preventDefault()
         if ((!input.trim() && !attachment) || isLoading) return
-        onSend(input.trim(), attachment, generationType, duration)
+        onSend(input.trim(), attachment, generationType, duration, aspectRatio, resolution)
         setInput('')
         setAttachment(null)
         if (textareaRef.current) textareaRef.current.style.height = 'auto'
@@ -94,63 +140,78 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
                         boxShadow: '0 4px 20px rgba(232,160,168,0.15), 0 1px 6px rgba(0,0,0,0.04)',
                     }}
                 >
-                    {/* TOP ROW — Type selector + Duration */}
+                    {/* TOP ROW — all generation controls, horizontally scrollable */}
                     <div
-                        className="flex items-center gap-2 px-3 pt-3 pb-2.5"
+                        className="flex items-center gap-2 px-3 pt-3 pb-2.5 overflow-x-auto scrollbar-hide"
                         style={{ borderBottom: '1px solid rgba(232,160,168,0.12)' }}
                     >
-                        {/* Type dropdown */}
-                        <div className="relative flex-shrink-0">
-                            <select
-                                value={generationType}
-                                onChange={(e) => setGenerationType(e.target.value as GenerationType)}
-                                disabled={isLoading}
-                                className="appearance-none text-[12px] font-semibold pl-2.5 pr-7 py-1.5 rounded-xl cursor-pointer outline-none transition-all disabled:opacity-50"
-                                style={{
-                                    background: '#FBF0EE',
-                                    border: '1px solid rgba(232,160,168,0.25)',
-                                    color: '#C8707A',
-                                }}
-                            >
-                                {TYPE_OPTIONS.map((o) => (
-                                    <option key={o.value} value={o.value} style={{ background: '#FFF', color: '#2D2426' }}>
-                                        {o.label}
-                                    </option>
-                                ))}
-                            </select>
-                            <ChevronDown
-                                size={12}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                                style={{ color: '#C8707A' }}
-                            />
-                        </div>
+                        {/* 1. Generation Type */}
+                        <ControlSelect
+                            value={generationType}
+                            onChange={(v) => setGenerationType(v as GenerationType)}
+                            disabled={isLoading}
+                            options={TYPE_OPTIONS}
+                        />
 
-                        {/* Duration selector — only for video types */}
+                        {/* Divider */}
+                        <div className="h-4 w-px shrink-0" style={{ background: 'rgba(232,160,168,0.2)' }} />
+
+                        {/* 2. Aspect Ratio */}
+                        <ControlSelect
+                            value={aspectRatio}
+                            onChange={(v) => setAspectRatio(v as AspectRatio)}
+                            disabled={isLoading}
+                            options={[
+                                { value: '4:3', label: '4:3 Classic' },
+                                { value: '1:1', label: '1:1 Square' },
+                                { value: '3:4', label: '3:4 Portrait' },
+                                { value: '9:16', label: '9:16 Mobile' },
+                                { value: '5:4', label: '5:4 Art Print' },
+                            ]}
+                        />
+
+                        {/* Divider */}
+                        <div className="h-4 w-px shrink-0" style={{ background: 'rgba(232,160,168,0.2)' }} />
+
+                        {/* 3. Resolution */}
+                        <ControlSelect
+                            value={resolution}
+                            onChange={(v) => setResolution(v as Resolution)}
+                            disabled={isLoading}
+                            options={[
+                                { value: '1k', label: '1K' },
+                                { value: '2k', label: '2K' },
+                                { value: '4k', label: '4K' },
+                            ]}
+                        />
+
+                        {/* 4. Duration — only shown for video types */}
                         {isVideo && (
-                            <div
-                                className="flex items-center gap-0.5 px-1.5 py-1 rounded-xl"
-                                style={{ background: '#FBF0EE', border: '1px solid rgba(232,160,168,0.2)' }}
-                            >
-                                {[3, 5, 10].map((d) => (
-                                    <button
-                                        key={d}
-                                        type="button"
-                                        onClick={() => setDuration(d)}
-                                        disabled={isLoading}
-                                        className={cn(
-                                            'px-2.5 py-0.5 text-[11px] font-semibold rounded-lg transition-all',
-                                            duration === d
-                                                ? 'text-white'
-                                                : 'text-[#C4B0B3] hover:text-[#C8707A]'
-                                        )}
-                                        style={duration === d ? {
-                                            background: 'linear-gradient(135deg, #E8A0A8, #D4757F)',
-                                        } : {}}
-                                    >
-                                        {d}s
-                                    </button>
-                                ))}
-                            </div>
+                            <>
+                                <div className="h-4 w-px shrink-0" style={{ background: 'rgba(232,160,168,0.2)' }} />
+                                <div
+                                    className="flex items-center gap-0.5 px-1.5 py-1 rounded-xl shrink-0"
+                                    style={{ background: '#FBF0EE', border: '1px solid rgba(232,160,168,0.2)' }}
+                                >
+                                    {[3, 5, 10].map((d) => (
+                                        <button
+                                            key={d}
+                                            type="button"
+                                            onClick={() => setDuration(d)}
+                                            disabled={isLoading}
+                                            className={cn(
+                                                'px-2.5 py-0.5 text-[11px] font-semibold rounded-lg transition-all shrink-0',
+                                                duration === d ? 'text-white' : 'text-[#C4B0B3] hover:text-[#C8707A]'
+                                            )}
+                                            style={duration === d ? {
+                                                background: 'linear-gradient(135deg, #E8A0A8, #D4757F)',
+                                            } : {}}
+                                        >
+                                            {d}s
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
                         )}
                     </div>
 
