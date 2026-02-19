@@ -3,14 +3,11 @@ import { generateWithFal } from './fal'
 
 export * from './types'
 
-// Image generation — routes to Nano Banana by default
+// Image generation — routes to Nano Banana by default (handled in route.ts)
 export async function generateImage(
     request: AIGenerationRequest & { model?: string; type?: string }
 ): Promise<AIGenerationResponse> {
-    return generateWithFal({
-        ...request,
-        model: request.model ?? 'fal-ai/nano-banana',
-    })
+    return generateWithFal(request)
 }
 
 // Video generation — routes to Veo3 by default

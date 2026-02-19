@@ -86,7 +86,9 @@ export default function CreatePage() {
                 const res = await generateImage({
                     prompt,
                     inputImage: attachment || undefined,
-                    model: 'fal-ai/nano-banana',    // Nano Banana model endpoint
+                    // No model specified — route.ts decides:
+                    // attachment present → fal-ai/flux/dev/image-to-image
+                    // no attachment     → fal-ai/nano-banana
                     type,
                     aspectRatio,
                     resolution,
