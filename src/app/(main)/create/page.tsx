@@ -88,7 +88,7 @@ export default function CreatePage() {
         aspectRatio: AspectRatio,
         resolution: Resolution,
         generateAudio: boolean,
-        videoUrl?: string,
+        videoAttachment?: string,
         keepOriginalSound?: boolean,
         characterOrientation?: 'image' | 'video',
     ) => {
@@ -138,7 +138,7 @@ export default function CreatePage() {
                 const res = await generateVideo({
                     prompt,
                     inputImage: attachment || undefined,
-                    videoUrl,
+                    videoUrl: videoAttachment,
                     durationSeconds: duration,
                     generateAudio,
                     keepOriginalSound,

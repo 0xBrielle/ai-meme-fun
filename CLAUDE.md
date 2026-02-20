@@ -117,3 +117,17 @@ Defined in `src/app/globals.css`:
 - Created `ElleAI-video-controls-errors-20260220.md` — (1) Video mode controls go vertical: stacked panel (ratio 16:9/9:16, quality 720p/1080p, duration 4s/6s/8s, audio on/off) replacing horizontal scroll; image mode keeps horizontal layout; auto-switches to valid video values on mode change. (2) generateAudio param plumbed through full chain. (3) getFriendlyError() helper with caring messages for content policy/timeout/rate-limit/invalid; errorMessage stored in ChatMessage; error bubble uses warm amber for policy violations, red for generic
 - Created `ElleAI-kling26-migration-20260220.md` — SUPERSEDED by v2 below (had duration as number, missing image-to-video aspect_ratio, wrong keep_original_sound default)
 - Created `ElleAI-kling26-migration-v2-20260220.md` — CONFIRMED from API docs. Kling 2.6 replaces VEO3 entirely. Corrections: duration sent as string enum "5"|"10" (not number); image-to-video also accepts aspect_ratio/cfg_scale/negative_prompt; keep_original_sound defaults to true; 4 files: types.ts (add videoUrl/keepOriginalSound/characterOrientation/cfgScale/negativePrompt), route.ts (full rewrite with correct Kling params), chat-bar.tsx (full rewrite, duration [5,10], aspect [16:9/9:16/1:1], video-to-video panel), page.tsx (signature update + pass new params)
+
+### 2026-02-21
+- Created `ElleAI-pro-page-navbar-20260220.md` — Pro Page + Navbar Adjustments:
+  - Created `src/hooks/use-video-picker.ts`: browser file input for video (returns base64 data URL)
+  - `chat-bar.tsx`: replaced video URL text input with file attachment picker for video-to-video mode
+    - New state: `videoAttachment` (base64 data URL) replaces `videoUrl` (string)
+    - New UI: pill button showing attach state, X clear button, updated hints
+  - `create/page.tsx`: renamed `videoUrl` → `videoAttachment` param, passed as `videoUrl` to generateVideo
+  - `app-shell.tsx`: logo h-7→h-[42px] (+50%), maxWidth 96px→144px; removed Plus button
+    - Added "🚀 Pro" pill button navigating to /pro
+  - Created `src/app/pro/page.tsx`: standalone page (no AppShell)
+    - Top bar: ⚡ElleAI back button + "Pro" title
+    - Content: placeholder "coming soon" card
+    - Bottom nav: Home | Explore | Create (center white circle +) | Assets | Profile

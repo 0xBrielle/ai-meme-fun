@@ -1,12 +1,14 @@
 'use client'
 
 import * as React from 'react'
+import { useRouter } from 'next/navigation'
 import { Sidebar } from './sidebar'
 import { useConversationStore } from '@/stores/conversation-store'
-import { Menu, Plus } from 'lucide-react'
+import { Menu } from 'lucide-react'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-    const { toggleSidebar, createConversation } = useConversationStore()
+    const { toggleSidebar } = useConversationStore()
+    const router = useRouter()
 
     return (
         <div className="flex h-screen w-screen overflow-hidden" style={{ background: '#F5EFE9' }}>
@@ -32,20 +34,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         <Menu size={18} strokeWidth={2.5} />
                     </button>
 
-                    {/* Brand — Elle AI logo */}
+                    {/* Brand — Elle AI logo (50% larger: 28px → 42px) */}
                     <img
                         src="/assets/logos/logoElle.png"
                         alt="Elle AI"
-                        className="h-7 w-auto object-contain"
-                        style={{ maxWidth: '96px' }}
+                        className="h-[42px] w-auto object-contain"
+                        style={{ maxWidth: '144px' }}
                     />
 
+                    {/* 🚀 Pro button — navigates to /pro page */}
                     <button
-                        onClick={createConversation}
-                        className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-90"
-                        style={{ background: 'rgba(212,120,138,0.08)', color: '#D4788A' }}
+                        onClick={() => router.push('/pro')}
+                        className="flex items-center gap-1.5 px-3 h-9 rounded-2xl transition-all active:scale-90"
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(212,120,138,0.15), rgba(201,149,92,0.15))',
+                            border: '1px solid rgba(212,120,138,0.25)',
+                        }}
                     >
-                        <Plus size={18} strokeWidth={2.5} />
+                        <span className="text-[13px] font-bold" style={{ color: '#D4788A' }}>🚀 Pro</span>
                     </button>
                 </header>
 

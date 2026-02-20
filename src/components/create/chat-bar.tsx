@@ -1,8 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import { Plus, Send, X, ChevronDown, Film } from 'lucide-react'
+import { Plus, Send, X, ChevronDown, Film, Video } from 'lucide-react'
 import { useImagePicker } from '@/hooks/use-image-picker'
+import { useVideoPicker } from '@/hooks/use-video-picker'
 import { GenerationType, AspectRatio, Resolution } from '@/types/conversation'
 import { cn } from '@/lib/utils'
 
@@ -15,7 +16,7 @@ interface ChatBarProps {
         aspectRatio: AspectRatio,
         resolution: Resolution,
         generateAudio: boolean,
-        videoUrl?: string,
+        videoAttachment?: string,
         keepOriginalSound?: boolean,
         characterOrientation?: 'image' | 'video',
     ) => void
@@ -114,12 +115,13 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
     const [resolution, setResolution] = React.useState<Resolution>('2k')  // images only
     const [generateAudio, setGenerateAudio] = React.useState(true)
     // Video-to-video specific
-    const [videoUrl, setVideoUrl] = React.useState('')
+    const [videoAttachment, setVideoAttachment] = React.useState<string | null>(null)
     const [keepOriginalSound, setKeepOriginalSound] = React.useState(true)  // default true per API
     const [characterOrientation, setCharacterOrientation] = React.useState<'image' | 'video'>('image')
 
     const textareaRef = React.useRef<HTMLTextAreaElement>(null)
     const { pickImage } = useImagePicker()
+    const { pickVideo } = useVideoPicker()
 
     const isVideo = generationType.includes('video')
     const isVideoToVideo = generationType === 'video-to-video'
@@ -146,7 +148,7 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
     const handleSend = (e?: React.FormEvent) => {
         e?.preventDefault()
         if (isLoading) return
-        if (isVideoToVideo && (!attachment || !videoUrl.trim())) return
+        if (isVideoToVideo && (!attachment || !videoAttachment)) return
         if (!isVideoToVideo && !input.trim() && !attachment) return
 
         let effectiveType: GenerationType = generationType
@@ -171,14 +173,14 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
             aspectRatio,
             resolution,
             generateAudio,
-            isVideoToVideo ? videoUrl.trim() : undefined,
+            isVideoToVideo ? (videoAttachment ?? undefined) : undefined,
             isVideoToVideo ? keepOriginalSound : undefined,
             isVideoToVideo ? characterOrientation : undefined,
         )
 
         setInput('')
         setAttachment(null)
-        setVideoUrl('')
+        setVideoAttachment(null)
         if (textareaRef.current) textareaRef.current.style.height = 'auto'
     }
 
@@ -193,6 +195,13 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
         } catch (err) { console.error(err) }
     }
 
+    const handleAttachVideo = async () => {
+        try {
+            const result = await pickVideo()
+            if (result) setVideoAttachment(result)
+        } catch (err) { console.error(err) }
+    }
+
     React.useEffect(() => {
         const t = textareaRef.current
         if (t) { t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight, 120)}px` }
@@ -200,7 +209,7 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
 
     const canSend = !isLoading && (
         isVideoToVideo
-            ? (!!attachment && !!videoUrl.trim())
+            ? (!!attachment && !!videoAttachment)
             : (!!input.trim() || !!attachment)
     )
 
@@ -264,23 +273,42 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
                                 </span>
                             </div>
 
-                            {/* Video-to-video: reference video URL input */}
+                            {/* Video-to-video: reference video attachment */}
                             {isVideoToVideo && (
-                                <div className="flex items-center gap-2 px-3 py-2 rounded-xl"
-                                    style={{ background: 'rgba(212,120,138,0.06)', border: '1px solid rgba(212,120,138,0.15)' }}>
-                                    <Film size={13} style={{ color: '#D4788A', flexShrink: 0 }} />
-                                    <input
-                                        type="url"
-                                        placeholder="Paste reference video URL..."
-                                        value={videoUrl}
-                                        onChange={(e) => setVideoUrl(e.target.value)}
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleAttachVideo}
                                         disabled={isLoading}
-                                        className="flex-1 bg-transparent border-none outline-none text-[12px] font-light placeholder:text-[#BFB0AB] disabled:opacity-40"
-                                        style={{ color: '#1C1410' }}
-                                    />
-                                    {videoUrl && (
-                                        <button type="button" onClick={() => setVideoUrl('')}
-                                            style={{ color: '#BFB0AB' }}>
+                                        className="flex items-center gap-2 flex-1 px-3 py-2 rounded-xl transition-all active:scale-95 disabled:opacity-40"
+                                        style={{
+                                            background: videoAttachment
+                                                ? 'rgba(212,120,138,0.12)'
+                                                : 'rgba(212,120,138,0.06)',
+                                            border: `1px solid ${videoAttachment ? 'rgba(212,120,138,0.4)' : 'rgba(212,120,138,0.15)'}`,
+                                        }}
+                                    >
+                                        <Video size={13} style={{ color: '#D4788A', flexShrink: 0 }} />
+                                        <span
+                                            className="text-[12px] font-medium flex-1 text-left truncate"
+                                            style={{ color: videoAttachment ? '#D4788A' : '#BFB0AB' }}
+                                        >
+                                            {videoAttachment ? '✓ Reference video attached' : 'Tap to attach reference video...'}
+                                        </span>
+                                        {videoAttachment && (
+                                            <span className="text-[10px] font-bold uppercase tracking-wider"
+                                                style={{ color: '#D4788A', opacity: 0.7 }}>
+                                                ✓
+                                            </span>
+                                        )}
+                                    </button>
+                                    {videoAttachment && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setVideoAttachment(null)}
+                                            className="w-7 h-7 rounded-full flex items-center justify-center"
+                                            style={{ background: 'rgba(212,120,138,0.1)', color: '#D4788A' }}
+                                        >
                                             <X size={12} />
                                         </button>
                                     )}
@@ -338,13 +366,13 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
                             )}
 
                             {/* Missing inputs hint — video-to-video */}
-                            {isVideoToVideo && (!attachment || !videoUrl.trim()) && (
+                            {isVideoToVideo && (!attachment || !videoAttachment) && (
                                 <p className="text-[10px] font-medium text-center" style={{ color: '#BFB0AB' }}>
-                                    {!attachment && !videoUrl.trim()
-                                        ? '⚠️ Tap + for a reference image and paste a video URL above'
+                                    {!attachment && !videoAttachment
+                                        ? '⚠️ Tap + to attach a reference image, and the video button above to attach a reference video'
                                         : !attachment
                                             ? '⚠️ Tap + below to attach a reference image'
-                                            : '⚠️ Paste a reference video URL above to continue'}
+                                            : '⚠️ Tap the video button above to attach a reference video'}
                                 </p>
                             )}
                         </div>
