@@ -3,7 +3,6 @@
 import * as React from 'react'
 import { ChatBar } from '@/components/create/chat-bar'
 import { ResultFeed } from '@/components/create/result-feed'
-import { ProcessingOverlay } from '@/components/create/processing-overlay'
 import { useConversationStore } from '@/stores/conversation-store'
 import { useGenerationStore } from '@/stores/generation-store'
 import { generateImage, generateVideo } from '@/services/ai'
@@ -128,30 +127,43 @@ export default function CreatePage() {
         }
     }
 
-    const handleDownload = (outputUrl: string, id: string, type: 'image' | 'video') => {
+    const handleDownload = (message: ChatMessage) => {
+        if (!message.outputUrl) return
         const link = document.createElement('a')
-        link.href = outputUrl
-        link.download = `ai-fun-meme-${id}.${type === 'video' ? 'mp4' : 'png'}`
+        link.href = message.outputUrl
+        link.download = `elle-ai-${message.id}.${message.outputType === 'video' ? 'mp4' : 'png'}`
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
+    }
+
+    const handleShare = (message: ChatMessage) => {
+        if (!message.outputUrl) return
+        if (navigator.share) {
+            navigator.share({
+                title: 'Check out my creation on Elle AI',
+                text: message.content || 'Generated with Elle AI',
+                url: message.outputUrl,
+            }).catch(() => {
+                showToast.info('Sharing failed or cancelled')
+            })
+        } else {
+            // Fallback: Copy to clipboard
+            navigator.clipboard.writeText(message.outputUrl).then(() => {
+                showToast.success('Link copied to clipboard!')
+            })
+        }
     }
 
     return (
         <div className="relative h-full flex flex-col">
             <ResultFeed
                 messages={messages}
-                onDownload={(msg) => handleDownload(msg.outputUrl!, msg.id, msg.outputType!)}
-                onShare={() => showToast.info('Sharing coming soon!')}
+                onDownload={handleDownload}
+                onShare={handleShare}
             />
 
             <ChatBar onSend={handleSend} isLoading={isGenerating} />
-
-            <ProcessingOverlay
-                isVisible={isGenerating}
-                progress={0}
-                status="Creating your masterpiece…"
-            />
         </div>
     )
 }
