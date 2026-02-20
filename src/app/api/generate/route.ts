@@ -31,13 +31,15 @@ function buildRequestBody(
     aspectRatio: string | undefined,
 ): Record<string, any> {
     const ratio = aspectRatio ?? '9:16'
+    // VEO3 only accepts "5s" or "8s" — clamp any other value to "8s"
+    const veo3Duration = `${[5, 8].includes(durationSeconds ?? 8) ? (durationSeconds ?? 8) : 8}s`
 
     // VEO3 Text-to-Video
     if (type === 'text-to-video') {
         return {
             prompt,
             aspect_ratio: ratio,
-            duration: `${durationSeconds ?? 8}s`,   // VEO3 wants "8s" not 8
+            duration: veo3Duration,
             resolution: '720p',
             generate_audio: true,
         }
@@ -52,7 +54,7 @@ function buildRequestBody(
             prompt,
             image_url: inputImage,          // single URL string (not array)
             aspect_ratio: ratio,
-            duration: `${durationSeconds ?? 8}s`,   // VEO3 wants "8s" not 8
+            duration: veo3Duration,
             resolution: '720p',
             generate_audio: true,
         }

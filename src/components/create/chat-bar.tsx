@@ -252,7 +252,7 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
                                     className="flex items-center gap-0.5 px-1.5 py-1 rounded-xl shrink-0"
                                     style={{ background: 'rgba(212,120,138,0.08)', border: '1px solid rgba(212,120,138,0.2)' }}
                                 >
-                                    {[3, 5, 10].map((d) => (
+                                    {[5, 8].map((d) => (
                                         <button
                                             key={d}
                                             type="button"
