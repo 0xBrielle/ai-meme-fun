@@ -456,9 +456,7 @@ export function ResultFeed({ messages, isGenerating, onDownload, onShare }: Resu
 
                                 {/* Error state */}
                                 {message.status === 'error' && (
-                                    <div
-                                        className="flex items-end gap-3 message-in"
-                                    >
+                                    <div className="flex items-end gap-3 message-in">
                                         <div
                                             className="shrink-0 rounded-full overflow-hidden flex items-center justify-center"
                                             style={{ width: 40, height: 40, background: 'white', border: '1.5px solid rgba(212,120,138,0.2)', padding: 4 }}
@@ -466,10 +464,16 @@ export function ResultFeed({ messages, isGenerating, onDownload, onShare }: Resu
                                             <img src="/assets/logos/logoElle.png" alt="Elle AI" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                         </div>
                                         <div
-                                            className="px-4 py-3 rounded-[20px] rounded-bl-[6px] text-[14px] font-light"
-                                            style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626' }}
+                                            className="px-4 py-3 rounded-[20px] rounded-bl-[6px] text-[14px] font-light max-w-[260px] leading-relaxed"
+                                            style={
+                                                message.errorMessage?.includes('flagged') || message.errorMessage?.includes('safety')
+                                                    // Content policy — warm amber, not alarming red
+                                                    ? { background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E' }
+                                                    // Generic error — soft red
+                                                    : { background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626' }
+                                            }
                                         >
-                                            Something went wrong — please try again.
+                                            {message.errorMessage ?? "Something went wrong — please try again."}
                                         </div>
                                     </div>
                                 )}

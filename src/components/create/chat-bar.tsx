@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Plus, Send, X, Image as ImageIcon, Video, ChevronDown, Sparkles } from 'lucide-react'
+import { Plus, Send, X, ChevronDown } from 'lucide-react'
 import { useImagePicker } from '@/hooks/use-image-picker'
 import { GenerationType, AspectRatio, Resolution } from '@/types/conversation'
 import { cn } from '@/lib/utils'
@@ -13,7 +13,8 @@ interface ChatBarProps {
         type: GenerationType,
         duration: number,
         aspectRatio: AspectRatio,
-        resolution: Resolution
+        resolution: Resolution,
+        generateAudio: boolean,
     ) => void
     isLoading?: boolean
     lastGeneratedImageUrl?: string | null
@@ -52,16 +53,44 @@ function ControlSelect({ value, onChange, disabled, options }: ControlSelectProp
     )
 }
 
-// Derive available options based on whether an attachment exists
+// Pill button — used for aspect ratio, resolution, duration, audio
+function Pill({ label, active, onClick, disabled }: { label: string; active: boolean; onClick: () => void; disabled?: boolean }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            className={cn('px-3 py-1 text-[11px] font-bold rounded-lg transition-all shrink-0', active ? 'text-white' : 'text-[#BFB0AB] hover:text-[#D4788A]')}
+            style={active ? { background: 'linear-gradient(135deg, #D4788A, #A84D60)' } : {}}
+        >
+            {label}
+        </button>
+    )
+}
+
+// Row label + pills — used in vertical video panel
+function ControlRow({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div className="flex items-center justify-between gap-3">
+            <span className="text-[10px] font-bold uppercase tracking-wider shrink-0" style={{ color: '#BFB0AB', minWidth: 56 }}>
+                {label}
+            </span>
+            <div className="flex items-center gap-0.5 px-1.5 py-1 rounded-xl" style={{ background: 'rgba(212,120,138,0.08)', border: '1px solid rgba(212,120,138,0.2)' }}>
+                {children}
+            </div>
+        </div>
+    )
+}
+
 function getTypeOptions(hasAttachment: boolean) {
     return hasAttachment
         ? [
-            { value: 'image-to-image', label: 'Image → Image' },
-            { value: 'image-to-video', label: 'Image → Video' },
+            { value: 'image-to-image', label: 'Img → Img' },
+            { value: 'image-to-video', label: 'Img → Vid' },
         ]
         : [
-            { value: 'text-to-image', label: 'Text → Image' },
-            { value: 'text-to-video', label: 'Text → Video' },
+            { value: 'text-to-image', label: 'Txt → Img' },
+            { value: 'text-to-video', label: 'Txt → Vid' },
         ]
 }
 
@@ -72,25 +101,37 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
     const [duration, setDuration] = React.useState(6)
     const [aspectRatio, setAspectRatio] = React.useState<AspectRatio>('9:16')
     const [resolution, setResolution] = React.useState<Resolution>('2k')
-
-    // Auto-switch type when attachment changes
-    React.useEffect(() => {
-        if (!attachment) {
-            // No attachment → must be text-based
-            if (generationType !== 'text-to-image' && generationType !== 'text-to-video') {
-                setGenerationType('text-to-image')
-            }
-        } else {
-            // Attachment present → switch text-only types to image equivalents
-            if (generationType === 'text-to-image') setGenerationType('image-to-image')
-            else if (generationType === 'text-to-video') setGenerationType('image-to-video')
-        }
-    }, [attachment])
+    const [generateAudio, setGenerateAudio] = React.useState(true)
 
     const textareaRef = React.useRef<HTMLTextAreaElement>(null)
     const { pickImage } = useImagePicker()
 
     const isVideo = generationType.includes('video')
+
+    // Auto-switch type when attachment changes
+    React.useEffect(() => {
+        if (!attachment) {
+            if (generationType !== 'text-to-image' && generationType !== 'text-to-video') {
+                setGenerationType('text-to-image')
+            }
+        } else {
+            if (generationType === 'text-to-image') setGenerationType('image-to-image')
+            else if (generationType === 'text-to-video') setGenerationType('image-to-video')
+        }
+    }, [attachment])
+
+    // Auto-switch controls when video mode is entered/exited
+    React.useEffect(() => {
+        if (isVideo) {
+            // Clamp aspect ratio to VEO3-valid values
+            if (aspectRatio !== '16:9' && aspectRatio !== '9:16') setAspectRatio('9:16')
+            // Clamp resolution to VEO3-valid values
+            if (resolution !== '720p' && resolution !== '1080p') setResolution('720p')
+        } else {
+            // Back to image defaults if needed
+            if (resolution === '720p' || resolution === '1080p') setResolution('2k')
+        }
+    }, [isVideo])
 
     const handleSend = (e?: React.FormEvent) => {
         e?.preventDefault()
@@ -99,19 +140,17 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
         let effectiveType: GenerationType = generationType
         let effectiveAttachment = attachment
 
-        // Auto-upgrade type based on attachment
         if (attachment && generationType === 'text-to-image') effectiveType = 'image-to-image'
         else if (attachment && generationType === 'text-to-video') effectiveType = 'image-to-video'
         else if (!attachment && generationType !== 'text-to-image' && generationType !== 'text-to-video') {
             effectiveType = 'text-to-image'
         }
 
-        // Auto-reference last generated image for image-to-video when no attachment provided
         if (effectiveType === 'image-to-video' && !effectiveAttachment && lastGeneratedImageUrl) {
             effectiveAttachment = lastGeneratedImageUrl
         }
 
-        onSend(input.trim(), effectiveAttachment, effectiveType, duration, aspectRatio, resolution)
+        onSend(input.trim(), effectiveAttachment, effectiveType, duration, aspectRatio, resolution, generateAudio)
         setInput('')
         setAttachment(null)
         if (textareaRef.current) textareaRef.current.style.height = 'auto'
@@ -138,9 +177,7 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
     return (
         <div
             className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-12 safe-bottom"
-            style={{
-                background: 'linear-gradient(to top, #F5EFE9 50%, rgba(245,239,233,0.8) 75%, transparent 100%)',
-            }}
+            style={{ background: 'linear-gradient(to top, #F5EFE9 50%, rgba(245,239,233,0.8) 75%, transparent 100%)' }}
         >
             <div className="max-w-2xl mx-auto space-y-2">
 
@@ -152,10 +189,7 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
                                 src={attachment}
                                 alt="Attachment"
                                 className="w-16 h-16 object-cover rounded-2xl"
-                                style={{
-                                    border: '2px solid rgba(212,120,138,0.3)',
-                                    boxShadow: '0 4px 12px rgba(212,120,138,0.2)',
-                                }}
+                                style={{ border: '2px solid rgba(212,120,138,0.3)', boxShadow: '0 4px 12px rgba(212,120,138,0.2)' }}
                             />
                             <button
                                 onClick={() => setAttachment(null)}
@@ -168,111 +202,111 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
                     </div>
                 )}
 
-                {/* Auto-reference hint — when image-to-video is selected and a previous image exists */}
+                {/* Auto-reference hint */}
                 {generationType === 'image-to-video' && !attachment && lastGeneratedImageUrl && (
                     <div
                         className="flex items-center gap-2 px-3 py-2 rounded-2xl mx-2 message-in"
-                        style={{
-                            background: 'rgba(212,120,138,0.06)',
-                            border: '1px solid rgba(212,120,138,0.15)',
-                        }}
+                        style={{ background: 'rgba(212,120,138,0.06)', border: '1px solid rgba(212,120,138,0.15)' }}
                     >
-                        <img
-                            src={lastGeneratedImageUrl}
-                            alt="Reference"
-                            className="w-8 h-8 rounded-xl object-cover"
-                            style={{ border: '1px solid rgba(212,120,138,0.2)' }}
-                        />
-                        <p className="text-[12px] font-medium flex-1" style={{ color: '#9B8D87' }}>
-                            Using last generated image as reference
-                        </p>
-                        <div
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ background: 'linear-gradient(135deg, #D4788A, #C9955C)', flexShrink: 0 }}
-                        />
+                        <img src={lastGeneratedImageUrl} alt="Reference" className="w-8 h-8 rounded-xl object-cover" style={{ border: '1px solid rgba(212,120,138,0.2)' }} />
+                        <p className="text-[12px] font-medium flex-1" style={{ color: '#9B8D87' }}>Using last generated image as reference</p>
+                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: 'linear-gradient(135deg, #D4788A, #C9955C)' }} />
                     </div>
                 )}
 
                 {/* Chat input box */}
-                <form
-                    onSubmit={handleSend}
-                    className="glass-elevated"
-                    style={{ borderRadius: '26px' }}
-                >
-                    {/* TOP ROW — all generation controls, horizontally scrollable */}
-                    <div
-                        className="flex items-center gap-2 px-4 pt-3.5 pb-3 overflow-x-auto scrollbar-hide"
-                        style={{ borderBottom: '1px solid rgba(212,120,138,0.1)' }}
-                    >
-                        {/* 1. Generation Type */}
-                        <ControlSelect
-                            value={generationType}
-                            onChange={(v) => setGenerationType(v as GenerationType)}
-                            disabled={isLoading}
-                            options={getTypeOptions(!!attachment)}
-                        />
+                <form onSubmit={handleSend} className="glass-elevated" style={{ borderRadius: '26px' }}>
 
-                        {/* Divider */}
-                        <div className="h-4 w-px shrink-0" style={{ background: 'rgba(212,120,138,0.2)' }} />
+                    {/* ── VIDEO MODE: Vertical stacked controls ── */}
+                    {isVideo ? (
+                        <div className="px-4 pt-3.5 pb-3 space-y-2" style={{ borderBottom: '1px solid rgba(212,120,138,0.1)' }}>
 
-                        {/* 2. Aspect Ratio */}
-                        <ControlSelect
-                            value={aspectRatio}
-                            onChange={(v) => setAspectRatio(v as AspectRatio)}
-                            disabled={isLoading}
-                            options={[
-                                { value: '4:3', label: '4:3 Classic' },
-                                { value: '1:1', label: '1:1 Square' },
-                                { value: '3:4', label: '3:4 Portrait' },
-                                { value: '9:16', label: '9:16 Mobile' },
-                                { value: '5:4', label: '5:4 Art Print' },
-                            ]}
-                        />
+                            {/* Row 1: Type selector */}
+                            <div className="flex items-center justify-between">
+                                <ControlSelect
+                                    value={generationType}
+                                    onChange={(v) => setGenerationType(v as GenerationType)}
+                                    disabled={isLoading}
+                                    options={getTypeOptions(!!attachment)}
+                                />
+                                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#D4788A', opacity: 0.6 }}>
+                                    VEO3
+                                </span>
+                            </div>
 
-                        {/* Divider */}
-                        <div className="h-4 w-px shrink-0" style={{ background: 'rgba(212,120,138,0.2)' }} />
+                            {/* Row 2: Aspect Ratio */}
+                            <ControlRow label="Ratio">
+                                {(['16:9', '9:16'] as AspectRatio[]).map((r) => (
+                                    <Pill key={r} label={r} active={aspectRatio === r} onClick={() => setAspectRatio(r)} disabled={isLoading} />
+                                ))}
+                            </ControlRow>
 
-                        {/* 3. Resolution */}
-                        <ControlSelect
-                            value={resolution}
-                            onChange={(v) => setResolution(v as Resolution)}
-                            disabled={isLoading}
-                            options={[
-                                { value: '1k', label: '1K' },
-                                { value: '2k', label: '2K' },
-                                { value: '4k', label: '4K' },
-                            ]}
-                        />
+                            {/* Row 3: Resolution */}
+                            <ControlRow label="Quality">
+                                {(['720p', '1080p'] as Resolution[]).map((r) => (
+                                    <Pill key={r} label={r} active={resolution === r} onClick={() => setResolution(r)} disabled={isLoading} />
+                                ))}
+                            </ControlRow>
 
-                        {/* 4. Duration — only shown for video types */}
-                        {isVideo && (
-                            <>
+                            {/* Row 4: Duration */}
+                            <ControlRow label="Duration">
+                                {[4, 6, 8].map((d) => (
+                                    <Pill key={d} label={`${d}s`} active={duration === d} onClick={() => setDuration(d)} disabled={isLoading} />
+                                ))}
+                            </ControlRow>
+
+                            {/* Row 5: Audio */}
+                            <ControlRow label="Audio">
+                                <Pill label="On" active={generateAudio} onClick={() => setGenerateAudio(true)} disabled={isLoading} />
+                                <Pill label="Off" active={!generateAudio} onClick={() => setGenerateAudio(false)} disabled={isLoading} />
+                            </ControlRow>
+                        </div>
+
+                    ) : (
+                        /* ── IMAGE MODE: Horizontal scrollable controls (unchanged) ── */
+                        <div className="relative" style={{ borderBottom: '1px solid rgba(212,120,138,0.1)' }}>
+                            <div
+                                className="flex items-center gap-1.5 px-3 pt-3 pb-2.5 overflow-x-auto scrollbar-hide"
+                                style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+                            >
+                                <ControlSelect
+                                    value={generationType}
+                                    onChange={(v) => setGenerationType(v as GenerationType)}
+                                    disabled={isLoading}
+                                    options={getTypeOptions(!!attachment)}
+                                />
                                 <div className="h-4 w-px shrink-0" style={{ background: 'rgba(212,120,138,0.2)' }} />
-                                <div
-                                    className="flex items-center gap-0.5 px-1.5 py-1 rounded-xl shrink-0"
-                                    style={{ background: 'rgba(212,120,138,0.08)', border: '1px solid rgba(212,120,138,0.2)' }}
-                                >
-                                    {[4, 6, 8].map((d) => (
-                                        <button
-                                            key={d}
-                                            type="button"
-                                            onClick={() => setDuration(d)}
-                                            disabled={isLoading}
-                                            className={cn(
-                                                'px-2.5 py-0.5 text-[11px] font-bold rounded-lg transition-all shrink-0',
-                                                duration === d ? 'text-white' : 'text-[#BFB0AB] hover:text-[#D4788A]'
-                                            )}
-                                            style={duration === d ? {
-                                                background: 'linear-gradient(135deg, #D4788A, #A84D60)',
-                                            } : {}}
-                                        >
-                                            {d}s
-                                        </button>
-                                    ))}
-                                </div>
-                            </>
-                        )}
-                    </div>
+                                <ControlSelect
+                                    value={aspectRatio}
+                                    onChange={(v) => setAspectRatio(v as AspectRatio)}
+                                    disabled={isLoading}
+                                    options={[
+                                        { value: '4:3', label: '4:3' },
+                                        { value: '1:1', label: '1:1' },
+                                        { value: '3:4', label: '3:4' },
+                                        { value: '9:16', label: '9:16' },
+                                        { value: '5:4', label: '5:4' },
+                                    ]}
+                                />
+                                <div className="h-4 w-px shrink-0" style={{ background: 'rgba(212,120,138,0.2)' }} />
+                                <ControlSelect
+                                    value={resolution}
+                                    onChange={(v) => setResolution(v as Resolution)}
+                                    disabled={isLoading}
+                                    options={[
+                                        { value: '1k', label: '1K' },
+                                        { value: '2k', label: '2K' },
+                                        { value: '4k', label: '4K' },
+                                    ]}
+                                />
+                                <div className="w-6 shrink-0" />
+                            </div>
+                            <div
+                                className="absolute right-0 top-0 bottom-0 w-10 pointer-events-none"
+                                style={{ background: 'linear-gradient(to right, transparent, rgba(250,245,242,0.95))', borderRadius: '0 26px 0 0' }}
+                            />
+                        </div>
+                    )}
 
                     {/* BOTTOM ROW — Attach + Textarea + Send */}
                     <div className="flex items-end gap-2 px-3 py-2.5">
@@ -285,30 +319,25 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
                         >
                             <Plus size={20} strokeWidth={2.5} />
                         </button>
-
                         <textarea
                             ref={textareaRef}
                             rows={1}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="Describe what you want to create..."
+                            placeholder={isVideo ? 'Describe your video...' : 'Describe what you want to create...'}
                             disabled={isLoading}
                             className="flex-1 bg-transparent border-none outline-none focus:ring-0 py-2 px-1 resize-none text-[15px] max-h-[120px] scrollbar-hide font-light"
                             style={{ color: '#1C1410' }}
                         />
-
                         <button
                             type="submit"
                             disabled={!canSend}
-                            className={cn(
-                                'w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-90',
-                                canSend && 'pulse-glow'
-                            )}
+                            className={cn('w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-90', canSend && 'pulse-glow')}
                             style={canSend ? {
                                 background: 'linear-gradient(135deg, #D4788A 0%, #A84D60 100%)',
                                 color: 'white',
-                                boxShadow: '0 4px 16px rgba(212,120,138,0.4)',
+                                boxShadow: '0 4px 166px rgba(212,120,138,0.4)',
                             } : {
                                 background: 'rgba(212,120,138,0.08)',
                                 color: '#BFB0AB',
@@ -318,7 +347,6 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
                         </button>
                     </div>
                 </form>
-
             </div>
         </div>
     )

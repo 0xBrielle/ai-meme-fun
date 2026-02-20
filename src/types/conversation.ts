@@ -5,9 +5,11 @@ export type GenerationType =
     | 'image-to-video'
     | 'video-to-video'
 
-export type AspectRatio = '4:3' | '1:1' | '3:4' | '9:16' | '5:4'
+// Image aspect ratios
+export type AspectRatio = '4:3' | '1:1' | '3:4' | '9:16' | '5:4' | '16:9'
 
-export type Resolution = '1k' | '2k' | '4k'
+// Image resolutions ('1k'/'2k'/'4k') + Video resolutions ('720p'/'1080p')
+export type Resolution = '1k' | '2k' | '4k' | '720p' | '1080p'
 
 export interface ChatMessage {
     id: string
@@ -20,6 +22,7 @@ export interface ChatMessage {
     aspectRatio?: AspectRatio
     resolution?: Resolution
     status?: 'loading' | 'success' | 'error'
+    errorMessage?: string          // friendly error shown in the chat bubble
     processingTimeMs?: number
     createdAt: string
 }

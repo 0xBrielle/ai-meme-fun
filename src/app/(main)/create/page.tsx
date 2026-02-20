@@ -10,6 +10,40 @@ import { ChatMessage, GenerationType, AspectRatio, Resolution } from '@/types/co
 import { showToast } from '@/lib/toast'
 import { generateId } from '@/lib/utils'
 
+// ── Error message classifier ───────────────────────────────────────────────
+function getFriendlyError(raw: string): string {
+    const msg = (raw ?? '').toLowerCase()
+
+    if (
+        msg.includes('flagged') ||
+        msg.includes('content checker') ||
+        (msg.includes('safety') && msg.includes('filter')) ||
+        msg.includes('content policy') ||
+        msg.includes('could not be processed')
+    ) {
+        return "This content was flagged by our safety system 💙 This sometimes happens with certain images or subjects. Please try a different image or adjust your prompt!"
+    }
+
+    if (msg.includes('timeout') || msg.includes('timed out') || msg.includes('408')) {
+        return "Generation took a bit too long this time ⏱️ VEO3 videos can take up to 4 minutes — please try again!"
+    }
+
+    if (msg.includes('rate limit') || msg.includes('too many requests') || msg.includes('429')) {
+        return "We're a bit busy right now 🙏 Take a short breather and try again in a moment."
+    }
+
+    if (msg.includes('unexpected value') || msg.includes('permitted:') || msg.includes('invalid')) {
+        return "One of the settings wasn't supported by the model. Try adjusting your options and sending again."
+    }
+
+    // Return the raw message if it looks readable (not a serialized object)
+    if (raw && raw.length < 200 && !raw.includes('[object')) {
+        return raw
+    }
+
+    return "Something went wrong — please try again."
+}
+
 export default function CreatePage() {
     // ── Reactive selectors ─────────────────────────────────────────────────────
     // Individual selectors guarantee precise re-renders when specific values change
@@ -52,7 +86,8 @@ export default function CreatePage() {
         type: GenerationType,
         duration: number,
         aspectRatio: AspectRatio,
-        resolution: Resolution
+        resolution: Resolution,
+        generateAudio: boolean,
     ) => {
         // IMPORTANT: Read CURRENT store state at call time to avoid stale closure values
         const { activeConversationId: currentId, conversations, createConversation: create } =
@@ -101,6 +136,7 @@ export default function CreatePage() {
                     prompt,
                     inputImage: attachment || undefined,
                     durationSeconds: duration,
+                    generateAudio,
                     type,
                     aspectRatio,
                     resolution,
@@ -145,9 +181,13 @@ export default function CreatePage() {
 
             showToast.success(isVideoType ? 'Video ready!' : 'Image ready!')
         } catch (err: any) {
-            updateMessage(conversationId, assistantMsgId, { status: 'error' })
+            const friendlyMessage = getFriendlyError(err.message ?? '')
+            updateMessage(conversationId, assistantMsgId, {
+                status: 'error',
+                errorMessage: friendlyMessage,
+            })
             setError(err.message)
-            showToast.error(err.message ?? 'Generation failed')
+            showToast.error(friendlyMessage)
         }
     }, [addMessage, updateMessage, startGeneration, setResult, setError])
 

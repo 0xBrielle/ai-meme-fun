@@ -29,10 +29,14 @@ function buildRequestBody(
     inputImage: string | undefined,
     durationSeconds: number | undefined,
     aspectRatio: string | undefined,
+    resolution: string | undefined,
+    generateAudio: boolean | undefined,
 ): Record<string, any> {
     const ratio = aspectRatio ?? '9:16'
-    // VEO3 only accepts "5s" or "8s" — clamp any other value to "8s"
+    // VEO3 only accepts "4s", "6s", or "8s" — clamp any other value to "8s"
     const veo3Duration = `${[4, 6, 8].includes(durationSeconds ?? 8) ? (durationSeconds ?? 8) : 8}s`
+    const veo3Resolution = (resolution === '1080p') ? '1080p' : '720p'   // clamp to valid VEO3 values
+    const withAudio = generateAudio !== false   // default true
 
     // VEO3 Text-to-Video
     if (type === 'text-to-video') {
@@ -40,8 +44,8 @@ function buildRequestBody(
             prompt,
             aspect_ratio: ratio,
             duration: veo3Duration,
-            resolution: '720p',
-            generate_audio: true,
+            resolution: veo3Resolution,
+            generate_audio: withAudio,
         }
     }
 
@@ -55,8 +59,8 @@ function buildRequestBody(
             image_url: inputImage,          // single URL string (not array)
             aspect_ratio: ratio,
             duration: veo3Duration,
-            resolution: '720p',
-            generate_audio: true,
+            resolution: veo3Resolution,
+            generate_audio: withAudio,
         }
     }
 
@@ -99,6 +103,8 @@ export async function POST(req: NextRequest) {
             type = 'text-to-image',
             durationSeconds,
             aspectRatio,
+            resolution,
+            generateAudio,
         } = await req.json()
 
         if (!prompt) {
@@ -114,7 +120,7 @@ export async function POST(req: NextRequest) {
 
         let requestBody: Record<string, any>
         try {
-            requestBody = buildRequestBody(type, prompt, inputImage, durationSeconds, aspectRatio)
+            requestBody = buildRequestBody(type, prompt, inputImage, durationSeconds, aspectRatio, resolution, generateAudio)
         } catch (err: any) {
             return NextResponse.json({ error: err.message, code: 'BUILD_ERROR' }, { status: 400 })
         }
