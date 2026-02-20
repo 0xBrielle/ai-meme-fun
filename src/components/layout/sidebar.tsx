@@ -62,7 +62,7 @@ export function Sidebar() {
                                 style={{ maxWidth: '120px' }}
                             />
                             <p className="text-[10px] uppercase tracking-[0.2em] font-semibold mt-1" style={{ color: '#BFB0AB' }}>
-                                Creative Studio
+                                Elle AI⚡
                             </p>
                         </div>
                         <button

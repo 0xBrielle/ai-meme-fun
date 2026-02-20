@@ -133,12 +133,23 @@ export async function POST(req: NextRequest) {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
             console.error('[FAL] Error response:', errorData)
+
+            // FAL validation errors arrive as an array of objects in `detail`
+            // Must stringify properly — never return a raw object as the error field
+            let errorMessage = 'Generation failed'
+            if (Array.isArray(errorData.detail)) {
+                errorMessage = errorData.detail
+                    .map((e: any) => e.msg || e.message || JSON.stringify(e))
+                    .filter(Boolean)
+                    .join('; ') || 'Generation failed'
+            } else if (typeof errorData.detail === 'string' && errorData.detail) {
+                errorMessage = errorData.detail
+            } else if (typeof errorData.message === 'string' && errorData.message) {
+                errorMessage = errorData.message
+            }
+
             return NextResponse.json(
-                {
-                    error: errorData.detail || errorData.message || 'Generation failed',
-                    code: 'FAL_ERROR',
-                    details: errorData,
-                },
+                { error: errorMessage, code: 'FAL_ERROR', details: errorData },
                 { status: response.status }
             )
         }

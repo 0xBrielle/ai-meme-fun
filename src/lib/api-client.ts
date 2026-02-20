@@ -15,10 +15,21 @@ export class APIError extends Error {
     }
 
     static fromResponse(response: Response, data?: unknown): APIError {
-        const message =
-            typeof data === 'object' && data && 'error' in data
-                ? String((data as { error: string }).error)
-                : response.statusText || 'Request failed'
+        let message = response.statusText || 'Request failed'
+        if (typeof data === 'object' && data && 'error' in data) {
+            const raw = (data as any).error
+            if (typeof raw === 'string' && raw) {
+                message = raw
+            } else if (Array.isArray(raw)) {
+                // Array of error objects — join their messages
+                message = raw
+                    .map((e: any) => e.msg || e.message || JSON.stringify(e))
+                    .filter(Boolean)
+                    .join('; ') || 'Request failed'
+            } else if (raw != null) {
+                message = JSON.stringify(raw)
+            }
+        }
 
         return new APIError(
             message,
