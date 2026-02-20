@@ -2,11 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { env } from '@/lib/env'
 import { ERROR_CODES } from '@/lib/errors'
 
+// Allow this route up to 5 minutes (needed for VEO3 video generation)
+export const maxDuration = 300
+
+// ─── Endpoint routing ─────────────────────────────────────────────────────────
+
 function resolveFalEndpoint(type: string, hasInputImage: boolean): string {
-    if (type.includes('video')) return 'fal-ai/veo3'
-    if (hasInputImage) return 'fal-ai/nano-banana/edit'
-    return 'fal-ai/nano-banana'
+    switch (type) {
+        case 'text-to-video':
+            return 'fal-ai/veo3'
+        case 'image-to-video':
+            return 'fal-ai/veo3/image-to-video'   // SEPARATE endpoint — required
+        case 'image-to-image':
+            return 'fal-ai/nano-banana/edit'
+        case 'text-to-image':
+        default:
+            return hasInputImage ? 'fal-ai/nano-banana/edit' : 'fal-ai/nano-banana'
+    }
 }
+
+// ─── Request body builders ────────────────────────────────────────────────────
 
 function buildRequestBody(
     type: string,
@@ -15,26 +30,39 @@ function buildRequestBody(
     durationSeconds: number | undefined,
     aspectRatio: string | undefined,
 ): Record<string, any> {
-    const isVideoType = type?.includes('video')
-    // NanoBanana uses aspect_ratio as a plain string e.g. "9:16"
-    // Fall back to "auto" if not provided
-    const ratio = aspectRatio ?? 'auto'
+    const ratio = aspectRatio ?? '9:16'
 
-    // ── VEO3 Video ────────────────────────────────────────────────────────
-    if (isVideoType) {
+    // VEO3 Text-to-Video
+    if (type === 'text-to-video') {
         return {
             prompt,
-            ...(inputImage && { image_url: inputImage }),
-            duration: durationSeconds ?? 5,
             aspect_ratio: ratio,
+            duration: `${durationSeconds ?? 8}s`,   // VEO3 wants "8s" not 8
+            resolution: '720p',
+            generate_audio: true,
         }
     }
 
-    // ── NanoBanana Image-to-Image (edit endpoint) ─────────────────────────
-    if (inputImage) {
+    // VEO3 Image-to-Video
+    if (type === 'image-to-video') {
+        if (!inputImage) {
+            throw new Error('image-to-video requires an input image')
+        }
         return {
             prompt,
-            image_urls: [inputImage],   // ARRAY — this is how nano-banana/edit works
+            image_url: inputImage,          // single URL string (not array)
+            aspect_ratio: ratio,
+            duration: `${durationSeconds ?? 8}s`,   // VEO3 wants "8s" not 8
+            resolution: '720p',
+            generate_audio: true,
+        }
+    }
+
+    // NanoBanana Image-to-Image
+    if (type === 'image-to-image' || inputImage) {
+        return {
+            prompt,
+            image_urls: [inputImage],       // array — required by nano-banana/edit
             aspect_ratio: ratio,
             num_images: 1,
             output_format: 'jpeg',
@@ -42,7 +70,7 @@ function buildRequestBody(
         }
     }
 
-    // ── NanoBanana Text-to-Image ──────────────────────────────────────────
+    // NanoBanana Text-to-Image
     return {
         prompt: `${prompt}, ultra realistic, high detail, photorealistic`,
         aspect_ratio: ratio,
@@ -52,14 +80,14 @@ function buildRequestBody(
     }
 }
 
+// ─── Output parsing ───────────────────────────────────────────────────────────
+
 function parseOutputUrl(data: any, isVideo: boolean): string | null {
-    if (isVideo) {
-        // VEO3 returns { video: { url: string } }
-        return data?.video?.url ?? null
-    }
-    // NanoBanana returns { images: [{ url: string }] }
+    if (isVideo) return data?.video?.url ?? null
     return data?.images?.[0]?.url ?? null
 }
+
+// ─── POST handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
     try {
@@ -73,24 +101,21 @@ export async function POST(req: NextRequest) {
 
         if (!prompt) {
             return NextResponse.json(
-                { error: ERROR_CODES.GENERATION_FAILED.message, code: 'MISSING_PROMPT' },
+                { error: 'Prompt is required', code: 'MISSING_PROMPT' },
                 { status: 400 }
             )
         }
 
+        const isVideoType = type.includes('video')
         const hasInputImage = !!inputImage
-        const isVideoType = type?.includes('video')
-
         const falEndpoint = resolveFalEndpoint(type, hasInputImage)
 
-        // NanoBanana accepts base64 data URIs directly in image_urls — no upload needed
-        const requestBody = buildRequestBody(
-            type,
-            prompt,
-            inputImage,         // pass as-is: base64 data URI or URL both work
-            durationSeconds,
-            aspectRatio,
-        )
+        let requestBody: Record<string, any>
+        try {
+            requestBody = buildRequestBody(type, prompt, inputImage, durationSeconds, aspectRatio)
+        } catch (err: any) {
+            return NextResponse.json({ error: err.message, code: 'BUILD_ERROR' }, { status: 400 })
+        }
 
         console.log(`[FAL] → ${falEndpoint} | type: ${type} | hasImage: ${hasInputImage}`)
 
@@ -105,10 +130,10 @@ export async function POST(req: NextRequest) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
-            console.error('[FAL] Error:', errorData)
+            console.error('[FAL] Error response:', errorData)
             return NextResponse.json(
                 {
-                    error: errorData.detail || errorData.message || ERROR_CODES.GENERATION_FAILED.message,
+                    error: errorData.detail || errorData.message || 'Generation failed',
                     code: 'FAL_ERROR',
                     details: errorData,
                 },
@@ -120,7 +145,7 @@ export async function POST(req: NextRequest) {
         const outputUrl = parseOutputUrl(data, isVideoType)
 
         if (!outputUrl) {
-            console.error('[FAL] Unexpected response shape:', data)
+            console.error('[FAL] Unexpected response shape:', JSON.stringify(data).slice(0, 500))
             return NextResponse.json(
                 { error: 'No output URL in FAL response', code: 'FAL_PARSE_ERROR' },
                 { status: 500 }
@@ -134,9 +159,9 @@ export async function POST(req: NextRequest) {
         })
 
     } catch (error: any) {
-        console.error('[API] Error:', error)
+        console.error('[API] Unhandled error:', error)
         return NextResponse.json(
-            { error: ERROR_CODES.UNKNOWN_ERROR.message, code: ERROR_CODES.UNKNOWN_ERROR.code },
+            { error: error.message || 'Unknown error', code: 'UNKNOWN_ERROR' },
             { status: 500 }
         )
     }

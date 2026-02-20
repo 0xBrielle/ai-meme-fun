@@ -124,12 +124,36 @@ function MediaLightbox({ message, onClose, onDownload, onShare }: LightboxProps)
 
 // ─── Elle Loading Avatar ──────────────────────────────────────────────────────
 
+const LOADING_MESSAGES = [
+    '🚀 Your imagination is loading…',
+    '🎨 Mixing colors…',
+    '💭 Turning your idea into magic…',
+    "Hang tight — it's worth it 🌈",
+    '✨ Almost ready to show you something awesome!',
+    '🧠 Thinking really hard…',
+    'Just a few more seconds ✨',
+]
+
 function ElleLoadingBubble() {
+    const [msgIndex, setMsgIndex] = React.useState(0)
+    const [visible, setVisible] = React.useState(true)
+
+    // Rotate message every 2.8s with a brief fade
+    React.useEffect(() => {
+        const interval = setInterval(() => {
+            setVisible(false)
+            setTimeout(() => {
+                setMsgIndex((i) => (i + 1) % LOADING_MESSAGES.length)
+                setVisible(true)
+            }, 300)
+        }, 2800)
+        return () => clearInterval(interval)
+    }, [])
+
     return (
-        <div className="flex items-end gap-3 message-in origin-bottom-left">
+        <div className="flex items-end gap-3 message-in">
             {/* Elle avatar with spinning ring */}
             <div className="relative flex items-center justify-center shrink-0" style={{ width: 40, height: 40 }}>
-                {/* Spinning ring */}
                 <motion.div
                     className="absolute rounded-full"
                     style={{
@@ -139,42 +163,86 @@ function ElleLoadingBubble() {
                     animate={{ rotate: 360 }}
                     transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
                 />
-                {/* Inner background mask */}
-                <div
-                    className="absolute rounded-full"
-                    style={{ inset: 3, background: '#FAF5F2' }}
-                />
-                {/* Logo */}
+                <div className="absolute rounded-full" style={{ inset: 3, background: '#FAF5F2' }} />
                 <img
                     src="/assets/logos/logoElle.png"
-                    alt="Elle"
+                    alt="Elle AI"
                     className="relative z-10 rounded-full"
-                    style={{ width: 28, height: 28, objectFit: 'contain', padding: 3, background: 'white' }}
+                    style={{ width: 28, height: 28, objectFit: 'contain', padding: 3, background: 'white', borderRadius: '50%' }}
                 />
             </div>
 
-            {/* Typing bubble */}
+            {/* Generating frame — looks like an image loading */}
             <div
-                className="px-5 py-3.5 rounded-[22px] rounded-bl-[6px] flex items-center gap-1.5"
+                className="flex flex-col gap-0 rounded-[20px] rounded-bl-[6px] overflow-hidden"
                 style={{
-                    background: 'rgba(255,255,255,0.95)',
-                    border: '1px solid rgba(212,120,138,0.15)',
-                    backdropFilter: 'blur(8px)',
-                    boxShadow: '0 4px 12px rgba(212,120,138,0.08)',
+                    width: 240,
+                    border: '1.5px solid rgba(212,120,138,0.15)',
+                    boxShadow: '0 4px 20px rgba(212,120,138,0.10)',
+                    background: 'white',
                 }}
             >
-                {[0, 1, 2].map((i) => (
-                    <motion.div
-                        key={i}
-                        className="rounded-full"
-                        style={{ width: 6, height: 6, background: '#D4788A' }}
-                        animate={{
-                            opacity: [0.3, 1, 0.3],
-                            scale: [0.95, 1.05, 0.95]
+                {/* Image placeholder frame with animated gradient */}
+                <div
+                    className="relative flex items-center justify-center"
+                    style={{
+                        height: 200,
+                        background: 'linear-gradient(135deg, #F9E8EC 0%, #F5E0D0 40%, #EFE0F5 70%, #E0EBF5 100%)',
+                        backgroundSize: '400% 400%',
+                        animation: 'gradientShift 4s ease infinite',
+                    }}
+                >
+                    {/* Frosted logo pill */}
+                    <div
+                        className="flex flex-col items-center gap-2 px-4 py-3 rounded-2xl"
+                        style={{
+                            background: 'rgba(255,255,255,0.75)',
+                            backdropFilter: 'blur(12px)',
+                            WebkitBackdropFilter: 'blur(12px)',
+                            border: '1px solid rgba(212,120,138,0.15)',
+                            boxShadow: '0 4px 16px rgba(212,120,138,0.12)',
                         }}
-                        transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
-                    />
-                ))}
+                    >
+                        <img
+                            src="/assets/logos/logoElle.png"
+                            alt="Elle AI"
+                            style={{ width: 40, height: 40, objectFit: 'contain' }}
+                        />
+                        {/* Dots */}
+                        <div className="flex gap-1.5">
+                            {[0, 1, 2].map((i) => (
+                                <motion.div
+                                    key={i}
+                                    className="rounded-full"
+                                    style={{ width: 5, height: 5, background: '#D4788A' }}
+                                    animate={{ y: [0, -5, 0], opacity: [0.4, 1, 0.4] }}
+                                    transition={{
+                                        duration: 0.7,
+                                        repeat: Infinity,
+                                        delay: i * 0.15,
+                                        ease: 'easeInOut',
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Rotating motivational message */}
+                <div
+                    className="px-4 py-3"
+                    style={{
+                        opacity: visible ? 1 : 0,
+                        transition: 'opacity 0.3s ease',
+                    }}
+                >
+                    <p
+                        className="text-[13px] font-medium text-center leading-relaxed"
+                        style={{ color: '#9B8D87' }}
+                    >
+                        {LOADING_MESSAGES[msgIndex]}
+                    </p>
+                </div>
             </div>
         </div>
     )

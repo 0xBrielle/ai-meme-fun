@@ -21,6 +21,15 @@ export default function CreatePage() {
         return conv?.messages ?? []
     })
 
+    // Last generated image URL — used for image-to-video auto-reference
+    const lastGeneratedImageUrl = React.useMemo(() => {
+        const successMsgs = [...messages].reverse()
+        const lastImg = successMsgs.find(
+            (m) => m.role === 'assistant' && m.status === 'success' && m.outputType === 'image' && m.outputUrl
+        )
+        return lastImg?.outputUrl ?? null
+    }, [messages])
+
     // Stable actions
     const createConversation = useConversationStore((s) => s.createConversation)
     const addMessage = useConversationStore((s) => s.addMessage)
@@ -176,7 +185,7 @@ export default function CreatePage() {
                 onDownload={handleDownload}
                 onShare={handleShare}
             />
-            <ChatBar onSend={handleSend} isLoading={isGenerating} />
+            <ChatBar onSend={handleSend} isLoading={isGenerating} lastGeneratedImageUrl={lastGeneratedImageUrl} />
         </div>
     )
 }

@@ -16,6 +16,7 @@ interface ChatBarProps {
         resolution: Resolution
     ) => void
     isLoading?: boolean
+    lastGeneratedImageUrl?: string | null
 }
 
 interface ControlSelectProps {
@@ -57,7 +58,6 @@ function getTypeOptions(hasAttachment: boolean) {
         ? [
             { value: 'image-to-image', label: 'Image → Image' },
             { value: 'image-to-video', label: 'Image → Video' },
-            { value: 'video-to-video', label: 'Video → Video' },
         ]
         : [
             { value: 'text-to-image', label: 'Text → Image' },
@@ -65,7 +65,7 @@ function getTypeOptions(hasAttachment: boolean) {
         ]
 }
 
-export function ChatBar({ onSend, isLoading }: ChatBarProps) {
+export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarProps) {
     const [input, setInput] = React.useState('')
     const [attachment, setAttachment] = React.useState<string | null>(null)
     const [generationType, setGenerationType] = React.useState<GenerationType>('text-to-image')
@@ -96,18 +96,22 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
         e?.preventDefault()
         if ((!input.trim() && !attachment) || isLoading) return
 
-        // Resolve effective type at send time — if image is attached but type is text-only,
-        // upgrade it to the image equivalent so the API always receives the right type.
         let effectiveType: GenerationType = generationType
-        if (attachment && generationType === 'text-to-image') {
-            effectiveType = 'image-to-image'
-        } else if (attachment && generationType === 'text-to-video') {
-            effectiveType = 'image-to-video'
-        } else if (!attachment && generationType !== 'text-to-image' && generationType !== 'text-to-video') {
+        let effectiveAttachment = attachment
+
+        // Auto-upgrade type based on attachment
+        if (attachment && generationType === 'text-to-image') effectiveType = 'image-to-image'
+        else if (attachment && generationType === 'text-to-video') effectiveType = 'image-to-video'
+        else if (!attachment && generationType !== 'text-to-image' && generationType !== 'text-to-video') {
             effectiveType = 'text-to-image'
         }
 
-        onSend(input.trim(), attachment, effectiveType, duration, aspectRatio, resolution)
+        // Auto-reference last generated image for image-to-video when no attachment provided
+        if (effectiveType === 'image-to-video' && !effectiveAttachment && lastGeneratedImageUrl) {
+            effectiveAttachment = lastGeneratedImageUrl
+        }
+
+        onSend(input.trim(), effectiveAttachment, effectiveType, duration, aspectRatio, resolution)
         setInput('')
         setAttachment(null)
         if (textareaRef.current) textareaRef.current.style.height = 'auto'
@@ -161,6 +165,31 @@ export function ChatBar({ onSend, isLoading }: ChatBarProps) {
                                 <X size={10} strokeWidth={3} />
                             </button>
                         </div>
+                    </div>
+                )}
+
+                {/* Auto-reference hint — when image-to-video is selected and a previous image exists */}
+                {generationType === 'image-to-video' && !attachment && lastGeneratedImageUrl && (
+                    <div
+                        className="flex items-center gap-2 px-3 py-2 rounded-2xl mx-2 message-in"
+                        style={{
+                            background: 'rgba(212,120,138,0.06)',
+                            border: '1px solid rgba(212,120,138,0.15)',
+                        }}
+                    >
+                        <img
+                            src={lastGeneratedImageUrl}
+                            alt="Reference"
+                            className="w-8 h-8 rounded-xl object-cover"
+                            style={{ border: '1px solid rgba(212,120,138,0.2)' }}
+                        />
+                        <p className="text-[12px] font-medium flex-1" style={{ color: '#9B8D87' }}>
+                            Using last generated image as reference
+                        </p>
+                        <div
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ background: 'linear-gradient(135deg, #D4788A, #C9955C)', flexShrink: 0 }}
+                        />
                     </div>
                 )}
 
