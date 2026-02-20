@@ -136,3 +136,8 @@ Defined in `src/app/globals.css`:
   - `app-shell.tsx`: replaced "🚀 Pro" text button with logoPro.png image
   - `pro/page.tsx`: replaced ⚡ElleAI text with logoElle.png; "Pro" title with logoPro.png; 🚀 emoji with logoPro.png
   - `result-feed.tsx`: replaced <Sparkles> empty-state icon with logoElle.png; removed Sparkles import
+
+- Created `ElleAI-v2v-upload-fix-20260220.md` — Video-to-Video Upload Fix:
+  - `route.ts`: added uploadToFalStorage() helper — uploads base64 data URLs to FAL file storage and returns hosted URL
+  - For video-to-video requests, both inputImage and videoUrl are uploaded in parallel before being passed to buildRequestBody / Kling motion-control
+  - Fixes "Request Failed" error: Kling motion-control requires real HTTP URLs, not base64 data URLs from file pickers
