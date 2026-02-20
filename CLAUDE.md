@@ -106,3 +106,4 @@ Defined in `src/app/globals.css`:
 - Established prompt file naming convention: `ElleAI-[topic]-[YYYYMMDD].md`
 - Created `ElleAI-rebranding-20260220.md` — covers app rename, logo swap, ProcessingOverlay redesign
 - Created `ElleAI-chat-ux-20260220.md` — removes full-screen ProcessingOverlay, adds inline Elle avatar loading bubble, compact 240×240 media thumbnails in feed, tap-to-expand lightbox overlay, fixes download filename to `elle-ai-${id}`
+- Created `ElleAI-chat-loading-fix-20260220.md` — fixes chat loading state never appearing: replaced non-reactive `getActiveConversation()` call with proper Zustand selector for `messages`, added conversation existence check in `handleSend` to prevent silent `addMessage` no-op on stale persisted conversation IDs, `useEffect` now validates conversation exists in array

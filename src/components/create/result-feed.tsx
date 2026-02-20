@@ -133,7 +133,7 @@ function ElleLoadingBubble() {
     }, [])
 
     return (
-        <div className="flex items-end gap-3 message-in">
+        <div className="flex items-end gap-3 message-in origin-bottom-left">
             {/* Elle avatar with spinning ring */}
             <div className="relative flex items-center justify-center shrink-0" style={{ width: 40, height: 40 }}>
                 {/* Spinning ring */}
@@ -154,37 +154,34 @@ function ElleLoadingBubble() {
                 {/* Logo */}
                 <img
                     src="/assets/logos/logoElle.png"
-                    alt="Elle AI"
+                    alt="Elle"
                     className="relative z-10 rounded-full"
-                    style={{ width: 28, height: 28, objectFit: 'contain', padding: 3, background: 'white', borderRadius: '50%' }}
+                    style={{ width: 28, height: 28, objectFit: 'contain', padding: 3, background: 'white' }}
                 />
             </div>
 
             {/* Typing bubble */}
             <div
-                className="px-5 py-4 rounded-[20px] rounded-bl-[6px] flex items-center gap-1.5"
+                className="px-5 py-3.5 rounded-[22px] rounded-bl-[6px] flex items-center gap-1.5"
                 style={{
-                    background: 'rgba(255,255,255,0.85)',
-                    border: '1.5px solid rgba(212,120,138,0.15)',
+                    background: 'rgba(255,255,255,0.95)',
+                    border: '1px solid rgba(212,120,138,0.15)',
                     backdropFilter: 'blur(8px)',
-                    boxShadow: '0 2px 12px rgba(212,120,138,0.08)',
+                    boxShadow: '0 4px 12px rgba(212,120,138,0.08)',
                 }}
             >
                 {[0, 1, 2].map((i) => (
                     <motion.div
                         key={i}
                         className="rounded-full"
-                        style={{ width: 7, height: 7, background: i < dots ? '#D4788A' : 'rgba(212,120,138,0.25)' }}
-                        animate={{ y: [0, -4, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.12, ease: 'easeInOut' }}
+                        style={{ width: 6, height: 6, background: '#D4788A' }}
+                        animate={{
+                            opacity: [0.3, 1, 0.3],
+                            scale: [0.95, 1.05, 0.95]
+                        }}
+                        transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
                     />
                 ))}
-                <span
-                    className="text-[12px] font-medium ml-1"
-                    style={{ color: '#C9A8B0' }}
-                >
-                    Creating{'.'.repeat(dots)}
-                </span>
             </div>
         </div>
     )

@@ -11,16 +11,18 @@ import { showToast } from '@/lib/toast'
 import { generateId } from '@/lib/utils'
 
 export default function CreatePage() {
-    const { activeConversationId, createConversation, addMessage, updateMessage, getActiveConversation } =
-        useConversationStore()
+    const { conversations, activeConversationId, createConversation, addMessage, updateMessage } = useConversationStore()
     const { isGenerating, startGeneration, setResult, setError } = useGenerationStore()
 
     // Ensure there's always an active conversation
     React.useEffect(() => {
         if (!activeConversationId) createConversation()
-    }, [activeConversationId])
+    }, [activeConversationId, createConversation])
 
-    const conversation = getActiveConversation()
+    const conversation = React.useMemo(() =>
+        conversations.find((c) => c.id === activeConversationId),
+        [conversations, activeConversationId]
+    )
     const messages = conversation?.messages ?? []
 
     const handleSend = async (
