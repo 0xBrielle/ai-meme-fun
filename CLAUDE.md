@@ -141,3 +141,10 @@ Defined in `src/app/globals.css`:
   - `route.ts`: added uploadToFalStorage() helper — uploads base64 data URLs to FAL file storage and returns hosted URL
   - For video-to-video requests, both inputImage and videoUrl are uploaded in parallel before being passed to buildRequestBody / Kling motion-control
   - Fixes "Request Failed" error: Kling motion-control requires real HTTP URLs, not base64 data URLs from file pickers
+
+- Created `ElleAI-pro-ui-polish-20260220.md` — Pro Page UI Polish:
+  - `app-shell.tsx`: replaced Pro image button with "Try 🚀 Pro" text pill (pastel pink)
+  - `pro/page.tsx`: replaced Elle back button with "Try ⚡Elle" text pill (pastel pink)
+  - `pro/page.tsx`: title logoPro.png resized to h-[42px]/144px
+  - `pro/page.tsx`: applied full pastel blue color scheme (#EFF6FF bg, #5B8CE8 accent)
+  - `pro/page.tsx`: updated NavItem to accept activeColor/inactiveColor props

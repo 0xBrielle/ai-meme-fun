@@ -42,21 +42,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         style={{ maxWidth: '144px' }}
                     />
 
-                    {/* 🚀 Pro button — navigates to /pro page */}
+                    {/* 🚀 Pro button — text pill CTA */}
                     <button
                         onClick={() => router.push('/pro')}
-                        className="flex items-center justify-center h-9 px-2 rounded-2xl transition-all active:scale-90"
+                        className="flex items-center gap-1 px-3 h-9 rounded-2xl transition-all active:scale-90"
                         style={{
-                            background: 'linear-gradient(135deg, rgba(212,120,138,0.15), rgba(201,149,92,0.15))',
-                            border: '1px solid rgba(212,120,138,0.25)',
+                            background: 'rgba(236,214,222,0.45)',
+                            border: '1px solid rgba(212,120,138,0.18)',
                         }}
                     >
-                        <img
-                            src="/assets/logos/logoPro.png"
-                            alt="Pro"
-                            className="h-6 w-auto object-contain"
-                            style={{ maxWidth: '72px' }}
-                        />
+                        <span className="text-[13px] font-semibold" style={{ color: '#C4607A' }}>Try 🚀 Pro</span>
                     </button>
                 </header>
 
