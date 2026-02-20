@@ -148,3 +148,9 @@ Defined in `src/app/globals.css`:
   - `pro/page.tsx`: title logoPro.png resized to h-[42px]/144px
   - `pro/page.tsx`: applied full pastel blue color scheme (#EFF6FF bg, #5B8CE8 accent)
   - `pro/page.tsx`: updated NavItem to accept activeColor/inactiveColor props
+
+- Created `ElleAI-pro-home-explore-20260220.md` — Pro Home & Explore Tabs:
+  - `pro/page.tsx`: implemented dynamic Home tab with auto-slideshow and collapse-on-scroll hero
+  - `pro/page.tsx`: added horizontal scroll category rows for templates
+  - `pro/page.tsx`: implemented Explore tab with TikTok-style vertical snap feed
+  - `pro/page.tsx`: added conditional theme switching for header/navbar based on active tab
