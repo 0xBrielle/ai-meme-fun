@@ -54,19 +54,14 @@ export function Sidebar() {
                 >
                     {/* Logo row */}
                     <div className="flex items-center justify-between mb-5">
-                        <div>
-                            <span
-                                className="text-[22px] font-black tracking-tighter leading-none"
-                                style={{
-                                    background: 'linear-gradient(135deg, #D4788A, #C9955C)',
-                                    WebkitBackgroundClip: 'text',
-                                    WebkitTextFillColor: 'transparent',
-                                    backgroundClip: 'text',
-                                }}
-                            >
-                                AI Fun Meme
-                            </span>
-                            <p className="text-[10px] uppercase tracking-[0.2em] font-semibold mt-0.5" style={{ color: '#BFB0AB' }}>
+                        <div className="flex flex-col">
+                            <img
+                                src="/assets/logos/logoElle.png"
+                                alt="Elle AI"
+                                className="h-9 w-auto object-contain object-left"
+                                style={{ maxWidth: '120px' }}
+                            />
+                            <p className="text-[10px] uppercase tracking-[0.2em] font-semibold mt-1" style={{ color: '#BFB0AB' }}>
                                 Creative Studio
                             </p>
                         </div>

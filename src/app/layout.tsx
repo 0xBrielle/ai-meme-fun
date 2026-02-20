@@ -3,7 +3,7 @@ import { Toaster } from 'sonner'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'AI Fun Meme',
+  title: 'Elle AI',
   description: 'AI-powered image & video generation',
 }
 

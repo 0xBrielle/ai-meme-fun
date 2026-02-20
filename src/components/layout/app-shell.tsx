@@ -32,18 +32,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         <Menu size={18} strokeWidth={2.5} />
                     </button>
 
-                    {/* Brand — gradient text */}
-                    <span
-                        className="text-[15px] font-bold tracking-tight"
-                        style={{
-                            background: 'linear-gradient(135deg, #D4788A 0%, #C9955C 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            backgroundClip: 'text',
-                        }}
-                    >
-                        AI Fun Meme
-                    </span>
+                    {/* Brand — Elle AI logo */}
+                    <img
+                        src="/assets/logos/logoElle.png"
+                        alt="Elle AI"
+                        className="h-7 w-auto object-contain"
+                        style={{ maxWidth: '96px' }}
+                    />
 
                     <button
                         onClick={createConversation}
