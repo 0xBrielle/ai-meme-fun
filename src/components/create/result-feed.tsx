@@ -125,13 +125,6 @@ function MediaLightbox({ message, onClose, onDownload, onShare }: LightboxProps)
 // ─── Elle Loading Avatar ──────────────────────────────────────────────────────
 
 function ElleLoadingBubble() {
-    const [dots, setDots] = React.useState(0)
-
-    React.useEffect(() => {
-        const t = setInterval(() => setDots((d) => (d + 1) % 4), 480)
-        return () => clearInterval(t)
-    }, [])
-
     return (
         <div className="flex items-end gap-3 message-in origin-bottom-left">
             {/* Elle avatar with spinning ring */}
@@ -307,17 +300,18 @@ function MediaThumbnail({ message, onExpand }: ThumbnailProps) {
 
 interface ResultFeedProps {
     messages: ChatMessage[]
+    isGenerating: boolean
     onDownload: (message: ChatMessage) => void
     onShare: (message: ChatMessage) => void
 }
 
-export function ResultFeed({ messages, onDownload, onShare }: ResultFeedProps) {
+export function ResultFeed({ messages, isGenerating, onDownload, onShare }: ResultFeedProps) {
     const bottomRef = React.useRef<HTMLDivElement>(null)
     const [lightboxMessage, setLightboxMessage] = React.useState<ChatMessage | null>(null)
 
     React.useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages])
+    }, [messages, isGenerating])
 
     return (
         <>
@@ -423,6 +417,15 @@ export function ResultFeed({ messages, onDownload, onShare }: ResultFeedProps) {
                         )}
                     </div>
                 ))}
+
+                {/* Fallback loading indicator — shown when isGenerating is true 
+                    but no loading assistant message is visible in the feed.
+                    This guarantees the user always sees feedback after sending. */}
+                {isGenerating && !messages.some((m) => m.role === 'assistant' && m.status === 'loading') && (
+                    <div className="flex flex-col items-start message-in">
+                        <ElleLoadingBubble />
+                    </div>
+                )}
 
                 <div ref={bottomRef} className="h-4" />
             </div>

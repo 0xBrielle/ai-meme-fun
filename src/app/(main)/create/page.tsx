@@ -11,21 +11,33 @@ import { showToast } from '@/lib/toast'
 import { generateId } from '@/lib/utils'
 
 export default function CreatePage() {
-    const { conversations, activeConversationId, createConversation, addMessage, updateMessage } = useConversationStore()
+    // ── Reactive selectors ─────────────────────────────────────────────────────
+    // Individual selectors guarantee precise re-renders when specific values change
+    const activeConversationId = useConversationStore((s) => s.activeConversationId)
+
+    // Derived messages — selector re-runs when conversations OR activeId changes
+    const messages = useConversationStore((s) => {
+        const conv = s.conversations.find((c) => c.id === s.activeConversationId)
+        return conv?.messages ?? []
+    })
+
+    // Stable actions
+    const createConversation = useConversationStore((s) => s.createConversation)
+    const addMessage = useConversationStore((s) => s.addMessage)
+    const updateMessage = useConversationStore((s) => s.updateMessage)
+
     const { isGenerating, startGeneration, setResult, setError } = useGenerationStore()
 
-    // Ensure there's always an active conversation
+    // ── Ensure active conversation always exists ───────────────────────────────
     React.useEffect(() => {
-        if (!activeConversationId) createConversation()
-    }, [activeConversationId, createConversation])
+        const { activeConversationId: id, conversations } = useConversationStore.getState()
+        if (!id || !conversations.some((c) => c.id === id)) {
+            createConversation()
+        }
+    }, [createConversation])
 
-    const conversation = React.useMemo(() =>
-        conversations.find((c) => c.id === activeConversationId),
-        [conversations, activeConversationId]
-    )
-    const messages = conversation?.messages ?? []
-
-    const handleSend = async (
+    // ── Send handler — always reads FRESH state ────────────────────────────────
+    const handleSend = React.useCallback(async (
         prompt: string,
         attachment: string | null,
         type: GenerationType,
@@ -33,9 +45,17 @@ export default function CreatePage() {
         aspectRatio: AspectRatio,
         resolution: Resolution
     ) => {
-        const conversationId = activeConversationId ?? createConversation()
+        // IMPORTANT: Read CURRENT store state at call time to avoid stale closure values
+        const { activeConversationId: currentId, conversations, createConversation: create } =
+            useConversationStore.getState()
 
-        // Add user message
+        // Get a valid conversation ID — create one if missing or stale
+        let conversationId = currentId
+        if (!conversationId || !conversations.some((c) => c.id === conversationId)) {
+            conversationId = create()
+        }
+
+        // ── Add user message ──────────────────────────────────────────────────
         const userMsgId = generateId()
         addMessage(conversationId, {
             id: userMsgId,
@@ -48,7 +68,7 @@ export default function CreatePage() {
             createdAt: new Date().toISOString(),
         })
 
-        // Add placeholder assistant message
+        // ── Add assistant loading placeholder ─────────────────────────────────
         const assistantMsgId = generateId()
         addMessage(conversationId, {
             id: assistantMsgId,
@@ -64,16 +84,13 @@ export default function CreatePage() {
 
         try {
             const isVideoType = type.includes('video')
-
             let outputUrl: string
             let processingTimeMs: number
 
             if (isVideoType) {
-                // Route to Veo3 via FAL
                 const res = await generateVideo({
                     prompt,
                     inputImage: attachment || undefined,
-                    // No model specified — route.ts decides: fal-ai/veo3
                     durationSeconds: duration,
                     type,
                     aspectRatio,
@@ -83,13 +100,9 @@ export default function CreatePage() {
                 outputUrl = res.outputUrls[0]
                 processingTimeMs = res.processingTimeMs ?? 0
             } else {
-                // Route to Nano Banana via FAL for image generation
                 const res = await generateImage({
                     prompt,
                     inputImage: attachment || undefined,
-                    // No model specified — route.ts decides:
-                    // attachment present → fal-ai/nano-banana/edit
-                    // no attachment     → fal-ai/nano-banana
                     type,
                     aspectRatio,
                     resolution,
@@ -121,15 +134,16 @@ export default function CreatePage() {
                 expiresAt: new Date(Date.now() + 86400000).toISOString(),
             })
 
-            showToast.success(isVideoType ? 'Video generated!' : 'Image generated!')
+            showToast.success(isVideoType ? 'Video ready!' : 'Image ready!')
         } catch (err: any) {
             updateMessage(conversationId, assistantMsgId, { status: 'error' })
             setError(err.message)
-            showToast.error(err.message)
+            showToast.error(err.message ?? 'Generation failed')
         }
-    }
+    }, [addMessage, updateMessage, startGeneration, setResult, setError])
 
-    const handleDownload = (message: ChatMessage) => {
+    // ── Download / Share ───────────────────────────────────────────────────────
+    const handleDownload = React.useCallback((message: ChatMessage) => {
         if (!message.outputUrl) return
         const link = document.createElement('a')
         link.href = message.outputUrl
@@ -137,34 +151,31 @@ export default function CreatePage() {
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
-    }
+    }, [])
 
-    const handleShare = (message: ChatMessage) => {
+    const handleShare = React.useCallback((message: ChatMessage) => {
         if (!message.outputUrl) return
         if (navigator.share) {
             navigator.share({
-                title: 'Check out my creation on Elle AI',
-                text: message.content || 'Generated with Elle AI',
+                title: 'Created with Elle AI',
+                text: message.content || 'Check out my creation',
                 url: message.outputUrl,
-            }).catch(() => {
-                showToast.info('Sharing failed or cancelled')
-            })
+            }).catch(() => showToast.info('Sharing cancelled'))
         } else {
-            // Fallback: Copy to clipboard
-            navigator.clipboard.writeText(message.outputUrl).then(() => {
-                showToast.success('Link copied to clipboard!')
-            })
+            navigator.clipboard.writeText(message.outputUrl)
+                .then(() => showToast.success('Link copied!'))
+                .catch(() => showToast.error('Could not copy link'))
         }
-    }
+    }, [])
 
     return (
         <div className="relative h-full flex flex-col">
             <ResultFeed
                 messages={messages}
+                isGenerating={isGenerating}
                 onDownload={handleDownload}
                 onShare={handleShare}
             />
-
             <ChatBar onSend={handleSend} isLoading={isGenerating} />
         </div>
     )
