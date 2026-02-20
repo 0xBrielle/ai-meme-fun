@@ -1,23 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { env } from '@/lib/env'
-import { ERROR_CODES } from '@/lib/errors'
 
-// Allow this route up to 5 minutes (needed for VEO3 video generation)
 export const maxDuration = 300
 
 // ─── Endpoint routing ─────────────────────────────────────────────────────────
 
-function resolveFalEndpoint(type: string, hasInputImage: boolean): string {
+function resolveFalEndpoint(type: string): string {
     switch (type) {
-        case 'text-to-video':
-            return 'fal-ai/veo3'
-        case 'image-to-video':
-            return 'fal-ai/veo3/image-to-video'   // SEPARATE endpoint — required
-        case 'image-to-image':
-            return 'fal-ai/nano-banana/edit'
-        case 'text-to-image':
-        default:
-            return hasInputImage ? 'fal-ai/nano-banana/edit' : 'fal-ai/nano-banana'
+        case 'text-to-video': return 'fal-ai/kling-video/v2.6/pro/text-to-video'
+        case 'image-to-video': return 'fal-ai/kling-video/v2.6/pro/image-to-video'
+        case 'video-to-video': return 'fal-ai/kling-video/v2.6/standard/motion-control'
+        case 'image-to-image': return 'fal-ai/nano-banana/edit'
+        default: return 'fal-ai/nano-banana'
     }
 }
 
@@ -27,59 +21,81 @@ function buildRequestBody(
     type: string,
     prompt: string,
     inputImage: string | undefined,
+    videoUrl: string | undefined,
     durationSeconds: number | undefined,
     aspectRatio: string | undefined,
-    resolution: string | undefined,
     generateAudio: boolean | undefined,
+    keepOriginalSound: boolean | undefined,
+    characterOrientation: string | undefined,
+    cfgScale: number | undefined,
+    negativePrompt: string | undefined,
 ): Record<string, any> {
-    const ratio = aspectRatio ?? '9:16'
-    // VEO3 only accepts "4s", "6s", or "8s" — clamp any other value to "8s"
-    const veo3Duration = `${[4, 6, 8].includes(durationSeconds ?? 8) ? (durationSeconds ?? 8) : 8}s`
-    const veo3Resolution = (resolution === '1080p') ? '1080p' : '720p'   // clamp to valid VEO3 values
-    const withAudio = generateAudio !== false   // default true
 
-    // VEO3 Text-to-Video
+    // ── Kling: duration must be string enum "5" or "10" ──────────────────────
+    const klingDuration = [5, 10].includes(durationSeconds ?? 5)
+        ? String(durationSeconds ?? 5)
+        : '5'
+
+    // ── Kling: aspect ratio — only these three values accepted ───────────────
+    const klingRatio = ['16:9', '9:16', '1:1'].includes(aspectRatio ?? '9:16')
+        ? (aspectRatio ?? '9:16')
+        : '9:16'
+
+    // ── Text-to-Video ─────────────────────────────────────────────────────────
     if (type === 'text-to-video') {
         return {
             prompt,
-            aspect_ratio: ratio,
-            duration: veo3Duration,
-            resolution: veo3Resolution,
-            generate_audio: withAudio,
+            duration: klingDuration,
+            aspect_ratio: klingRatio,
+            cfg_scale: cfgScale ?? 0.5,
+            generate_audio: generateAudio !== false,
+            ...(negativePrompt ? { negative_prompt: negativePrompt } : {}),
         }
     }
 
-    // VEO3 Image-to-Video
+    // ── Image-to-Video ────────────────────────────────────────────────────────
     if (type === 'image-to-video') {
-        if (!inputImage) {
-            throw new Error('image-to-video requires an input image')
-        }
+        if (!inputImage) throw new Error('image-to-video requires a reference image')
         return {
             prompt,
-            image_url: inputImage,          // single URL string (not array)
-            aspect_ratio: ratio,
-            duration: veo3Duration,
-            resolution: veo3Resolution,
-            generate_audio: withAudio,
+            start_image_url: inputImage,   // ← Kling uses start_image_url, NOT image_url
+            duration: klingDuration,
+            aspect_ratio: klingRatio,
+            cfg_scale: cfgScale ?? 0.5,
+            generate_audio: generateAudio !== false,
+            ...(negativePrompt ? { negative_prompt: negativePrompt } : {}),
         }
     }
 
-    // NanoBanana Image-to-Image
+    // ── Video-to-Video (Motion Control) ───────────────────────────────────────
+    if (type === 'video-to-video') {
+        if (!inputImage) throw new Error('video-to-video requires a reference image')
+        if (!videoUrl) throw new Error('video-to-video requires a reference video URL')
+        return {
+            prompt: prompt || '',
+            image_url: inputImage,
+            video_url: videoUrl,
+            keep_original_sound: keepOriginalSound !== false,  // default true
+            character_orientation: characterOrientation ?? 'image',
+        }
+    }
+
+    // ── NanoBanana Image-to-Image ─────────────────────────────────────────────
     if (type === 'image-to-image' || inputImage) {
         return {
             prompt,
-            image_urls: [inputImage],       // array — required by nano-banana/edit
-            aspect_ratio: ratio,
+            image_urls: [inputImage],
+            aspect_ratio: aspectRatio ?? '9:16',
             num_images: 1,
             output_format: 'jpeg',
             safety_tolerance: '4',
         }
     }
 
-    // NanoBanana Text-to-Image
+    // ── NanoBanana Text-to-Image ──────────────────────────────────────────────
     return {
         prompt: `${prompt}, ultra realistic, high detail, photorealistic`,
-        aspect_ratio: ratio,
+        aspect_ratio: aspectRatio ?? '9:16',
         num_images: 1,
         output_format: 'jpeg',
         safety_tolerance: '4',
@@ -93,6 +109,20 @@ function parseOutputUrl(data: any, isVideo: boolean): string | null {
     return data?.images?.[0]?.url ?? null
 }
 
+// ─── Error extraction ─────────────────────────────────────────────────────────
+
+function extractErrorMessage(errorData: any): string {
+    if (Array.isArray(errorData.detail)) {
+        return errorData.detail
+            .map((e: any) => e.msg || e.message || JSON.stringify(e))
+            .filter(Boolean)
+            .join('; ') || 'Generation failed'
+    }
+    if (typeof errorData.detail === 'string' && errorData.detail) return errorData.detail
+    if (typeof errorData.message === 'string' && errorData.message) return errorData.message
+    return 'Generation failed'
+}
+
 // ─── POST handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -100,14 +130,18 @@ export async function POST(req: NextRequest) {
         const {
             prompt,
             inputImage,
+            videoUrl,
             type = 'text-to-image',
             durationSeconds,
             aspectRatio,
-            resolution,
             generateAudio,
+            keepOriginalSound,
+            characterOrientation,
+            cfgScale,
+            negativePrompt,
         } = await req.json()
 
-        if (!prompt) {
+        if (!prompt && type !== 'video-to-video') {
             return NextResponse.json(
                 { error: 'Prompt is required', code: 'MISSING_PROMPT' },
                 { status: 400 }
@@ -115,17 +149,21 @@ export async function POST(req: NextRequest) {
         }
 
         const isVideoType = type.includes('video')
-        const hasInputImage = !!inputImage
-        const falEndpoint = resolveFalEndpoint(type, hasInputImage)
+        const falEndpoint = resolveFalEndpoint(type)
 
         let requestBody: Record<string, any>
         try {
-            requestBody = buildRequestBody(type, prompt, inputImage, durationSeconds, aspectRatio, resolution, generateAudio)
+            requestBody = buildRequestBody(
+                type, prompt, inputImage, videoUrl,
+                durationSeconds, aspectRatio, generateAudio,
+                keepOriginalSound, characterOrientation,
+                cfgScale, negativePrompt,
+            )
         } catch (err: any) {
             return NextResponse.json({ error: err.message, code: 'BUILD_ERROR' }, { status: 400 })
         }
 
-        console.log(`[FAL] → ${falEndpoint} | type: ${type} | hasImage: ${hasInputImage}`)
+        console.log(`[Kling/FAL] → ${falEndpoint} | type: ${type}`)
 
         const response = await fetch(`https://fal.run/${falEndpoint}`, {
             method: 'POST',
@@ -139,23 +177,8 @@ export async function POST(req: NextRequest) {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
             console.error('[FAL] Error response:', errorData)
-
-            // FAL validation errors arrive as an array of objects in `detail`
-            // Must stringify properly — never return a raw object as the error field
-            let errorMessage = 'Generation failed'
-            if (Array.isArray(errorData.detail)) {
-                errorMessage = errorData.detail
-                    .map((e: any) => e.msg || e.message || JSON.stringify(e))
-                    .filter(Boolean)
-                    .join('; ') || 'Generation failed'
-            } else if (typeof errorData.detail === 'string' && errorData.detail) {
-                errorMessage = errorData.detail
-            } else if (typeof errorData.message === 'string' && errorData.message) {
-                errorMessage = errorData.message
-            }
-
             return NextResponse.json(
-                { error: errorMessage, code: 'FAL_ERROR', details: errorData },
+                { error: extractErrorMessage(errorData), code: 'FAL_ERROR', details: errorData },
                 { status: response.status }
             )
         }
@@ -164,18 +187,14 @@ export async function POST(req: NextRequest) {
         const outputUrl = parseOutputUrl(data, isVideoType)
 
         if (!outputUrl) {
-            console.error('[FAL] Unexpected response shape:', JSON.stringify(data).slice(0, 500))
+            console.error('[FAL] Unexpected shape:', JSON.stringify(data).slice(0, 500))
             return NextResponse.json(
-                { error: 'No output URL in FAL response', code: 'FAL_PARSE_ERROR' },
+                { error: 'No output URL in response', code: 'FAL_PARSE_ERROR' },
                 { status: 500 }
             )
         }
 
-        return NextResponse.json({
-            output: [outputUrl],
-            endpoint: falEndpoint,
-            type,
-        })
+        return NextResponse.json({ output: [outputUrl], endpoint: falEndpoint, type })
 
     } catch (error: any) {
         console.error('[API] Unhandled error:', error)

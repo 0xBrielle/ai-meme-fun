@@ -88,6 +88,9 @@ export default function CreatePage() {
         aspectRatio: AspectRatio,
         resolution: Resolution,
         generateAudio: boolean,
+        videoUrl?: string,
+        keepOriginalSound?: boolean,
+        characterOrientation?: 'image' | 'video',
     ) => {
         // IMPORTANT: Read CURRENT store state at call time to avoid stale closure values
         const { activeConversationId: currentId, conversations, createConversation: create } =
@@ -135,11 +138,13 @@ export default function CreatePage() {
                 const res = await generateVideo({
                     prompt,
                     inputImage: attachment || undefined,
+                    videoUrl,
                     durationSeconds: duration,
                     generateAudio,
+                    keepOriginalSound,
+                    characterOrientation,
                     type,
                     aspectRatio,
-                    resolution,
                 })
                 if (!res.success || !res.outputUrls?.[0]) throw new Error(res.error ?? 'Video generation failed')
                 outputUrl = res.outputUrls[0]
