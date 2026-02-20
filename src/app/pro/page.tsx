@@ -28,26 +28,24 @@ export default function ProPage() {
                 {/* ⚡ElleAI — back to chat */}
                 <button
                     onClick={() => router.back()}
-                    className="flex items-center gap-1.5 px-3 h-9 rounded-2xl transition-all active:scale-90"
-                    style={{
-                        background: 'rgba(212,120,138,0.08)',
-                    }}
+                    className="flex items-center justify-center px-2 h-9 rounded-2xl transition-all active:scale-90"
+                    style={{ background: 'rgba(212,120,138,0.08)' }}
                 >
-                    <span
-                        className="text-[15px] font-bold tracking-tight"
-                        style={{ color: '#D4788A' }}
-                    >
-                        ⚡ElleAI
-                    </span>
+                    <img
+                        src="/assets/logos/logoElle.png"
+                        alt="Elle AI"
+                        className="h-6 w-auto object-contain"
+                        style={{ maxWidth: '80px' }}
+                    />
                 </button>
 
                 {/* Page title */}
-                <span
-                    className="text-[15px] font-bold tracking-tight"
-                    style={{ color: '#1C1410' }}
-                >
-                    Pro
-                </span>
+                <img
+                    src="/assets/logos/logoPro.png"
+                    alt="Pro"
+                    className="h-7 w-auto object-contain"
+                    style={{ maxWidth: '80px' }}
+                />
 
                 {/* Spacer placeholder to balance layout */}
                 <div className="w-[72px]" />
@@ -57,10 +55,14 @@ export default function ProPage() {
             <main className="flex-1 overflow-y-auto flex items-center justify-center">
                 <div className="text-center space-y-3 px-8">
                     <div
-                        className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto text-3xl"
+                        className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto"
                         style={{ background: 'linear-gradient(135deg, rgba(212,120,138,0.15), rgba(201,149,92,0.15))', border: '1px solid rgba(212,120,138,0.2)' }}
                     >
-                        🚀
+                        <img
+                            src="/assets/logos/logoPro.png"
+                            alt="Pro"
+                            className="w-14 h-auto object-contain"
+                        />
                     </div>
                     <p className="text-[20px] font-bold" style={{ color: '#1C1410' }}>
                         Pro is coming soon

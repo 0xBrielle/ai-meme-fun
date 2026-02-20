@@ -131,3 +131,8 @@ Defined in `src/app/globals.css`:
     - Top bar: ⚡ElleAI back button + "Pro" title
     - Content: placeholder "coming soon" card
     - Bottom nav: Home | Explore | Create (center white circle +) | Assets | Profile
+
+- Created `ElleAI-logo-replacements-20260220.md` — Logo Replacements:
+  - `app-shell.tsx`: replaced "🚀 Pro" text button with logoPro.png image
+  - `pro/page.tsx`: replaced ⚡ElleAI text with logoElle.png; "Pro" title with logoPro.png; 🚀 emoji with logoPro.png
+  - `result-feed.tsx`: replaced <Sparkles> empty-state icon with logoElle.png; removed Sparkles import

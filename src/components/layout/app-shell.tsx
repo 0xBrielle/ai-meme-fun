@@ -45,13 +45,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     {/* 🚀 Pro button — navigates to /pro page */}
                     <button
                         onClick={() => router.push('/pro')}
-                        className="flex items-center gap-1.5 px-3 h-9 rounded-2xl transition-all active:scale-90"
+                        className="flex items-center justify-center h-9 px-2 rounded-2xl transition-all active:scale-90"
                         style={{
                             background: 'linear-gradient(135deg, rgba(212,120,138,0.15), rgba(201,149,92,0.15))',
                             border: '1px solid rgba(212,120,138,0.25)',
                         }}
                     >
-                        <span className="text-[13px] font-bold" style={{ color: '#D4788A' }}>🚀 Pro</span>
+                        <img
+                            src="/assets/logos/logoPro.png"
+                            alt="Pro"
+                            className="h-6 w-auto object-contain"
+                            style={{ maxWidth: '72px' }}
+                        />
                     </button>
                 </header>
 

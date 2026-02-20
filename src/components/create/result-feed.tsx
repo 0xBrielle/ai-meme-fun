@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChatMessage } from '@/types/conversation'
-import { Download, Share2, X, Maximize2, Sparkles } from 'lucide-react'
+import { Download, Share2, X, Maximize2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ─── Media Lightbox ───────────────────────────────────────────────────────────
@@ -397,7 +397,11 @@ export function ResultFeed({ messages, isGenerating, onDownload, onShare }: Resu
                                     boxShadow: '0 8px 32px rgba(212,120,138,0.15), 0 2px 8px rgba(0,0,0,0.04)',
                                 }}
                             >
-                                <Sparkles size={38} style={{ color: '#D4788A' }} />
+                                <img
+                                    src="/assets/logos/logoElle.png"
+                                    alt="Elle AI"
+                                    className="w-14 h-auto object-contain"
+                                />
                             </div>
                             <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full" style={{ background: '#C9955C', opacity: 0.6 }} />
                             <div className="absolute -bottom-1 -left-1 w-2 h-2 rounded-full" style={{ background: '#D4788A', opacity: 0.4 }} />
