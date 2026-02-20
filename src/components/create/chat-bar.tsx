@@ -69,7 +69,7 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
     const [input, setInput] = React.useState('')
     const [attachment, setAttachment] = React.useState<string | null>(null)
     const [generationType, setGenerationType] = React.useState<GenerationType>('text-to-image')
-    const [duration, setDuration] = React.useState(5)
+    const [duration, setDuration] = React.useState(6)
     const [aspectRatio, setAspectRatio] = React.useState<AspectRatio>('9:16')
     const [resolution, setResolution] = React.useState<Resolution>('2k')
 
@@ -252,7 +252,7 @@ export function ChatBar({ onSend, isLoading, lastGeneratedImageUrl }: ChatBarPro
                                     className="flex items-center gap-0.5 px-1.5 py-1 rounded-xl shrink-0"
                                     style={{ background: 'rgba(212,120,138,0.08)', border: '1px solid rgba(212,120,138,0.2)' }}
                                 >
-                                    {[5, 8].map((d) => (
+                                    {[4, 6, 8].map((d) => (
                                         <button
                                             key={d}
                                             type="button"

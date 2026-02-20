@@ -32,7 +32,7 @@ function buildRequestBody(
 ): Record<string, any> {
     const ratio = aspectRatio ?? '9:16'
     // VEO3 only accepts "5s" or "8s" — clamp any other value to "8s"
-    const veo3Duration = `${[5, 8].includes(durationSeconds ?? 8) ? (durationSeconds ?? 8) : 8}s`
+    const veo3Duration = `${[4, 6, 8].includes(durationSeconds ?? 8) ? (durationSeconds ?? 8) : 8}s`
 
     // VEO3 Text-to-Video
     if (type === 'text-to-video') {
