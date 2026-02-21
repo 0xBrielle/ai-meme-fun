@@ -154,3 +154,10 @@ Defined in `src/app/globals.css`:
   - `pro/page.tsx`: added horizontal scroll category rows for templates
   - `pro/page.tsx`: implemented Explore tab with TikTok-style vertical snap feed
   - `pro/page.tsx`: added conditional theme switching for header/navbar based on active tab
+- [ ] Created `ElleAI-pro-home-ui-update-20260221.md` — Pro Page Home Tab UI/UX Polish:
+  - Hero slideshow: full horizontal bleed (no margins/radius), floats under transparent header
+  - All cards/buttons: reduced border radius (rounded-2xl → rounded-xl)
+  - Category card rows: tighter horizontal margins (px-4 → px-2)
+  - Template cards: ~20% larger (120×168 → 144×202)
+  - Removed "Try" badge from cards, title now centered with slightly bigger font
+  - Category section titles: 20% larger (15px → 18px)

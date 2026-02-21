@@ -223,7 +223,7 @@ function HomeTab() {
                 }}
             >
                 {/* Slideshow */}
-                <div className="relative mx-4 mt-4 rounded-3xl overflow-hidden" style={{ height: 320 }}>
+                <div className="relative overflow-hidden" style={{ height: 340 }}>
                     {HERO_SLIDES.map((slide, idx) => (
                         <div
                             key={slide.id}
@@ -251,7 +251,7 @@ function HomeTab() {
 
                             {/* Try It — bottom right */}
                             <button
-                                className="absolute bottom-12 right-4 px-4 py-2 rounded-full text-[13px] font-bold transition-all active:scale-95"
+                                className="absolute bottom-12 right-4 px-4 py-2 rounded-xl text-[13px] font-bold transition-all active:scale-95"
                                 style={{
                                     background: 'rgba(255,255,255,0.92)',
                                     color: '#1A2540',
@@ -306,7 +306,7 @@ function HomeTab() {
 function QuickActionButton({ icon, label }: { icon: React.ReactNode; label: string }) {
     return (
         <button
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl transition-all active:scale-95"
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all active:scale-95"
             style={{
                 background: 'linear-gradient(135deg, rgba(27,46,92,0.85), rgba(30,58,138,0.9))',
                 border: '1px solid rgba(96,165,250,0.25)',
@@ -324,8 +324,8 @@ function CategoryRow({ category }: { category: Category }) {
     return (
         <div>
             {/* Row header */}
-            <div className="flex items-center justify-between px-4 mb-3">
-                <span className="text-[15px] font-bold" style={{ color: PRO.text }}>
+            <div className="flex items-center justify-between px-2 mb-3">
+                <span className="text-[18px] font-bold" style={{ color: PRO.text }}>
                     {category.label}
                 </span>
                 <button className="flex items-center gap-0.5 text-[12px] font-semibold" style={{ color: PRO.accent }}>
@@ -335,7 +335,7 @@ function CategoryRow({ category }: { category: Category }) {
 
             {/* Horizontal scroll */}
             <div
-                className="flex gap-3 overflow-x-auto scrollbar-hide px-4"
+                className="flex gap-2.5 overflow-x-auto scrollbar-hide px-2"
                 style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
             >
                 {category.items.map((item) => (
@@ -351,43 +351,37 @@ function CategoryRow({ category }: { category: Category }) {
 function TemplateCard({ item }: { item: TemplateItem }) {
     return (
         <div
-            className="relative shrink-0 rounded-2xl overflow-hidden"
-            style={{ width: 120, height: 168 }}
+            className="relative shrink-0 rounded-xl overflow-hidden"
+            style={{ width: 144, height: 202 }}
         >
             {/* Gradient placeholder background */}
             <div className="absolute inset-0" style={{ background: item.gradient }} />
 
-            {/* Dark overlay for text */}
+            {/* Dark overlay for text legibility */}
             <div
                 className="absolute inset-0"
-                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 50%)' }}
+                style={{ background: 'rgba(0,0,0,0.30)' }}
             />
 
-            {/* Tag badge */}
+            {/* Tag badge — top left (kept if present) */}
             {item.tag && (
                 <div
-                    className="absolute top-2 left-2 px-1.5 py-0.5 rounded-full text-[10px] font-bold"
+                    className="absolute top-2 left-2 px-1.5 py-0.5 rounded-lg text-[10px] font-bold"
                     style={{ background: 'rgba(0,0,0,0.45)', color: '#fff', backdropFilter: 'blur(4px)' }}
                 >
                     {item.tag} Trending
                 </div>
             )}
 
-            {/* Title */}
-            <p
-                className="absolute bottom-3 left-3 right-3 text-white text-[12px] font-semibold leading-snug"
-                style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
-            >
-                {item.title}
-            </p>
-
-            {/* Try It micro-button */}
-            <button
-                className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold"
-                style={{ background: 'rgba(255,255,255,0.88)', color: '#1A2540' }}
-            >
-                Try
-            </button>
+            {/* Title — centered in card, slightly larger font */}
+            <div className="absolute inset-0 flex items-center justify-center px-2">
+                <p
+                    className="text-white text-[13px] font-bold text-center leading-snug"
+                    style={{ textShadow: '0 1px 6px rgba(0,0,0,0.7)' }}
+                >
+                    {item.title}
+                </p>
+            </div>
         </div>
     )
 }
@@ -546,7 +540,7 @@ function ExploreCard({
             {/* Recreate button */}
             <div className="absolute bottom-6 left-4 right-4 z-10">
                 <button
-                    className="w-full py-3 rounded-2xl text-[14px] font-bold transition-all active:scale-95"
+                    className="w-full py-3 rounded-xl text-[14px] font-bold transition-all active:scale-95"
                     style={{
                         background: 'rgba(255,255,255,0.92)',
                         color: '#1A2540',
@@ -591,18 +585,18 @@ export default function ProPage() {
             <header
                 className="flex items-center justify-between px-5 h-14 shrink-0 safe-top z-30"
                 style={{
-                    background: activeTab === 'explore' ? 'transparent' : PRO.headerBg,
+                    background: (activeTab === 'home' || activeTab === 'explore') ? 'transparent' : PRO.headerBg,
                     backdropFilter: 'blur(24px)',
                     WebkitBackdropFilter: 'blur(24px)',
-                    borderBottom: activeTab === 'explore' ? 'none' : `1px solid ${PRO.border}`,
-                    position: activeTab === 'explore' ? 'absolute' : 'relative',
+                    borderBottom: (activeTab === 'home' || activeTab === 'explore') ? 'none' : `1px solid ${PRO.border}`,
+                    position: (activeTab === 'home' || activeTab === 'explore') ? 'absolute' : 'relative',
                     top: 0, left: 0, right: 0,
                 }}
             >
                 {/* "Try ⚡Elle" — back to chat, subtle pastel pink pill */}
                 <button
                     onClick={() => router.back()}
-                    className="flex items-center gap-1 px-3 h-9 rounded-2xl transition-all active:scale-90"
+                    className="flex items-center gap-1 px-3 h-9 rounded-xl transition-all active:scale-90"
                     style={{
                         background: 'rgba(236,214,222,0.45)',
                         border: '1px solid rgba(212,120,138,0.18)',
@@ -628,7 +622,7 @@ export default function ProPage() {
             {/* ── Content area ─────────────────────────────────────── */}
             <main
                 className="flex-1 overflow-hidden relative"
-                style={{ paddingTop: activeTab === 'explore' ? 56 : 0 }}
+                style={{ paddingTop: (activeTab === 'home' || activeTab === 'explore') ? 0 : 56 }}
             >
                 {activeTab === 'home' && <HomeTab />}
                 {activeTab === 'explore' && <ExploreTab />}
@@ -745,7 +739,7 @@ function NavItem({
         <button
             type="button"
             onClick={onClick}
-            className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-2xl transition-all active:scale-90"
+            className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all active:scale-90"
         >
             <span style={{ color: active ? activeColor : inactiveColor }}>{icon}</span>
             <span className="text-[10px] font-semibold" style={{ color: active ? activeColor : inactiveColor }}>
